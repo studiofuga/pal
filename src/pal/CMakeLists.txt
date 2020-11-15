@@ -11,7 +11,6 @@ set(SOURCES
         problem.cpp
         util.cpp)
 
-
 set(HEADERS
         rtree.hpp
         linkedlist.hpp
@@ -26,7 +25,18 @@ set(HEADERS
         simplemutex.h
         util.h)
 
-add_library(pal ${SOURCES} ${HEADERS})
+set(PUB_HEADERS
+        ${CMAKE_SOURCE_DIR}/src/includes/pal/label.h
+        ${CMAKE_SOURCE_DIR}/src/includes/pal/layer.h
+        ${CMAKE_SOURCE_DIR}/src/includes/pal/pal.h
+        ${CMAKE_SOURCE_DIR}/src/includes/pal/palexception.h
+        ${CMAKE_SOURCE_DIR}/src/includes/pal/palgeometry.h
+        ${CMAKE_SOURCE_DIR}/src/includes/pal/palstat.h
+        )
+
+add_library(pal SHARED ${SOURCES} ${HEADERS} ${PUB_HEADERS})
+
+set_target_properties(pal PROPERTIES PUBLIC_HEADERS "${PUB_HEADERS}")
 
 target_include_directories(pal
         PUBLIC
@@ -41,4 +51,15 @@ target_link_libraries(pal
         Threads::Threads
         PUBLIC
         ${GEOS_LIBRARY}
+        )
+
+install(TARGETS pal
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        )
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/src/includes"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        FILES_MATCHING
+        PATTERN "*.h"
         )
