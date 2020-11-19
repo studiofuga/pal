@@ -58,7 +58,7 @@ install(TARGETS pal
         ARCHIVE DESTINATION lib
         )
 
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/src/includes"
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/src/includes/pal"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         FILES_MATCHING
         PATTERN "*.h"
