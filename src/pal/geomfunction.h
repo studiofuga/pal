@@ -4,6 +4,7 @@
  *
  *   Copyright (C) 2007, 2008 MIS-TIC, HEIG-VD (University of Applied Sciences Western Switzerland)
  *   Copyright (C) 2008, 2009 IICT-SYSIN, HEIG-VD (University of Applied Sciences Western Switzerland)
+ *   Copyright (C) 2020 Federico Fuga <fuga@studiofuga.com>
  *
  *
  * This file is part of libpal.
