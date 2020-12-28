@@ -23,10 +23,6 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #ifndef _LABEL_H
 #define _LABEL_H
 

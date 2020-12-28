@@ -26,11 +26,6 @@
 #ifndef _SIMPLE_MUTEX_H_
 #define _SIMPLE_MUTEX_H_
 
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 // Platform dependant mutex
 #ifdef _HAVE_PTHREAD_
 #include <pthread.h>

@@ -23,10 +23,6 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #ifndef _EXCEPTION_H
 #define _EXCEPTION_H
 

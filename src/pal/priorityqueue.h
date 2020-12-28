@@ -23,10 +23,6 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #ifndef _PRIORITYQUEUE_H
 #define _PRIORITYQUEUE_H
 
