@@ -13,3 +13,5 @@ endif()
 if (GEOS_FOUND)
     add_definitions(-DHAVE_GEOS)
 endif()
+
+find_package(Catch2 REQUIRED)
