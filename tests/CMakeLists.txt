@@ -1,6 +1,9 @@
-add_executable(unittests pal_tests.cpp)
+add_executable(unittests
+        Geom.cpp Geom.h
+        pal_tests.cpp
+        test_geos_labelling.cpp)
 
-target_link_libraries(unittests PRIVATE Catch2::Catch2)
+target_link_libraries(unittests PRIVATE Catch2::Catch2 pal)
 
 include(CTest)
 include(Catch)
