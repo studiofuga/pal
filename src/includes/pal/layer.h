@@ -27,20 +27,25 @@
 #ifndef _LAYER_H_
 #define _LAYER_H_
 
+#include "pal/pal.h"
+
+#if defined(HAVE_GEOS)
+#include "pal/palgeometry.h"
+#endif
+
 #include <fstream>
-
-#include <pal/pal.h>
-#include <pal/palgeometry.h>
-
 
 namespace pal {
 //#include <pal/LinkedList.hpp>
 
-    template <class Type> class LinkedList;
-    template <class Type> class Cell;
-    template <typename Data> class HashTable;
+template<class Type>
+class LinkedList;
+template<class Type>
+class Cell;
+template<typename Data>
+class HashTable;
 
-    template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES> class RTree;
+template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES> class RTree;
 
     class Feature;
     class Pal;
@@ -63,9 +68,9 @@ namespace pal {
 
         friend class LabelPosition;
         friend bool extractFeatCallback (Feature *ft_ptr, void *ctx);
-        friend bool pruneLabelPositionCallback (LabelPosition *lp, void *ctx);
-        friend bool obstacleCallback (PointSet *feat, void *ctx);
-        friend void toSVGPath (int nbPoints, double *x, double *y, int dpi, Layer *layer, int type, char *uid, std::ostream &out, double scale, Units unit, int xmin, int xmax, int ymax, bool exportInfo, char *color);
+        friend bool pruneLabelPositionCallback(LabelPosition *lp, void *ctx);
+        friend bool obstacleCallback(std::shared_ptr<Feature> feat, void *ctx);
+        friend void toSVGPath(int nbPoints, double *x, double *y, int dpi, Layer *layer, int type, char *uid, std::ostream &out, double scale, Units unit, int xmin, int xmax, int ymax, bool exportInfo, char *color);
         friend bool filteringCallback (PointSet*, void*);
 
     protected:
@@ -167,7 +172,7 @@ namespace pal {
 
         /**
          * \brief set unit for label size
-         * 
+         *
          */
         void setLabelUnit (Units label_unit);
 
@@ -259,6 +264,7 @@ namespace pal {
          */
         double getPriority();
 
+#if defined(HAVE_GEOS)
         /**
          * \brief register a feature in the layer
          *
@@ -270,6 +276,7 @@ namespace pal {
          * @throws PalException::FeatureExists
          */
         void registerFeature (const char *geom_id, PalGeometry *userGeom, double label_x =-1, double label_y = -1);
+#endif
 
         // TODO implement
         //void unregisterFeature (const char *geom_id);

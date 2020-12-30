@@ -47,35 +47,36 @@
 
 namespace pal {
 
-    LabelPosition::LabelPosition (int id, double x1, double y1, double w, double h, double alpha, double cost, Feature *feature) : id (id), cost (cost), /*workingCost (0),*/ alpha (alpha), feature (feature), nbOverlap (0), w (w), h (h) {
+LabelPosition::LabelPosition(int id, double x1, double y1, double w, double h, double alpha, double cost, std::shared_ptr<Feature> feature) : id(id), cost(cost), /*workingCost (0),*/ alpha(alpha), feature(feature), nbOverlap(0), w(w), h(h)
+{
 
 
-        // alpha take his value bw 0 and 2*pi rad
-        while (this->alpha > 2*M_PI)
-            this->alpha -= 2 * M_PI;
+    // alpha take his value bw 0 and 2*pi rad
+    while (this->alpha > 2 * M_PI)
+        this->alpha -= 2 * M_PI;
 
-        while (this->alpha < 0)
-            this->alpha += 2 * M_PI;
+    while (this->alpha < 0)
+        this->alpha += 2 * M_PI;
 
-        register double beta = this->alpha + (M_PI / 2);
+    register double beta = this->alpha + (M_PI / 2);
 
-        double dx1, dx2, dy1, dy2;
+    double dx1, dx2, dy1, dy2;
 
-        double tx, ty;
+    double tx, ty;
 
-        dx1 = cos (this->alpha) * w;
-        dy1 = sin (this->alpha) * w;
+    dx1 = cos(this->alpha) * w;
+    dy1 = sin(this->alpha) * w;
 
-        dx2 = cos (beta) * h;
-        dy2 = sin (beta) * h;
+    dx2 = cos(beta) * h;
+    dy2 = sin(beta) * h;
 
-        x[0] = x1;
-        y[0] = y1;
+    x[0] = x1;
+    y[0] = y1;
 
-        x[1] = x1 + dx1;
-        y[1] = y1 + dy1;
+    x[1] = x1 + dx1;
+    y[1] = y1 + dy1;
 
-        x[2] = x1 + dx1 + dx2;
+    x[2] = x1 + dx1 + dx2;
         y[2] = y1 + dy1 + dy2;
 
         x[3] = x1 + dx2;
@@ -174,48 +175,59 @@ namespace pal {
         return id;
     }
 
-    double LabelPosition::getX() {
+    double LabelPosition::getX()
+    {
         return x[0];
     }
 
-    double LabelPosition::getY() {
+    double LabelPosition::getY()
+    {
         return y[0];
     }
 
-    double LabelPosition::getAlpha() {
+    double LabelPosition::getAlpha()
+    {
         return alpha;
     }
 
-    double LabelPosition::getCost() {
+    double LabelPosition::getCost()
+    {
         return cost;
     }
 
-    Feature * LabelPosition::getFeature() {
+    std::shared_ptr<Feature> LabelPosition::getFeature()
+    {
         return feature;
     }
 
-    bool xGrow (void *l, void *r) {
-        return ( (LabelPosition*) l)->x[0] > ( (LabelPosition*) r)->x[0];
+    bool xGrow(void *l, void *r)
+    {
+        return ((LabelPosition *) l)->x[0] > ((LabelPosition *) r)->x[0];
     }
 
-    bool yGrow (void *l, void *r) {
-        return ( (LabelPosition*) l)->y[0] > ( (LabelPosition*) r)->y[0];
+    bool yGrow(void *l, void *r)
+    {
+        return ((LabelPosition *) l)->y[0] > ((LabelPosition *) r)->y[0];
     }
 
-    bool xShrink (void *l, void *r) {
-        return ( (LabelPosition*) l)->x[0] < ( (LabelPosition*) r)->x[0];
+    bool xShrink(void *l, void *r)
+    {
+        return ((LabelPosition *) l)->x[0] < ((LabelPosition *) r)->x[0];
     }
 
-    bool yShrink (void *l, void *r) {
-        return ( (LabelPosition*) l)->y[0] < ( (LabelPosition*) r)->y[0];
+    bool yShrink(void *l, void *r)
+    {
+        return ((LabelPosition *) l)->y[0] < ((LabelPosition *) r)->y[0];
     }
 
-    bool costShrink (void *l, void *r) {
-        return ( (LabelPosition*) l)->cost < ( (LabelPosition*) r)->cost;
+    bool costShrink(void *l, void *r)
+    {
+        return ((LabelPosition *) l)->cost < ((LabelPosition *) r)->cost;
     }
 
-    bool costGrow (void *l, void *r) {
-        return ( (LabelPosition*) l)->cost > ( (LabelPosition*) r)->cost;
+    bool costGrow(std::shared_ptr<LabelPosition> l, std::shared_ptr<LabelPosition> r)
+    {
+        return l->cost > r->cost;
     }
 
     /*
@@ -228,32 +240,25 @@ namespace pal {
     }
     */
 
-    Label *LabelPosition::toLabel (bool active) {
-
-        //double x[4], y;
-
-        //x = this->x[0];
-        //y = this->y[0];
-
-//#warning retourner les coord projeté ou pas ?
-        //feature->layer->pal->proj->getLatLong(this->x[0], this->y[0], &x, &y);
-
-        return new Label (this->x, this->y, alpha, feature->uid, feature->layer->name, feature->userGeom);
+    std::shared_ptr<Label> LabelPosition::toLabel(bool active)
+    {
+        return std::make_shared<Label>(this->x, this->y, alpha, feature->uid, feature->layer->name, feature->userGeom);
     }
 
 
-    bool obstacleCallback (PointSet *feat, void *ctx) {
-        LabelPosition::PolygonCostCalculator *pCost = (LabelPosition::PolygonCostCalculator*) ctx;
+    bool obstacleCallback(std::shared_ptr<Feature> feat, void *ctx)
+    {
+        LabelPosition::PolygonCostCalculator *pCost = (LabelPosition::PolygonCostCalculator *) ctx;
 
         LabelPosition *lp = pCost->getLabel();
-        if ( (feat == lp->feature) || (feat->holeOf && feat->holeOf != lp->feature)) {
+        if ((feat == lp->feature) || (feat->holeOf && feat->holeOf != lp->feature)) {
             return true;
         }
 
         // if the feature is not a hole we have to fetch corrdinates
         // otherwise holes coordinates are still in memory (feature->selfObs)
         if (feat->holeOf == NULL) {
-            ( (Feature*) feat)->fetchCoordinates();
+            ((Feature *) feat)->fetchCoordinates();
         }
 
         pCost->update(feat);
@@ -444,14 +449,13 @@ namespace pal {
     }
 
     void LabelPosition::PolygonCostCalculator::update (PointSet *pset) {
-        if (pset->getType() == GEOS_POINT){
+        if (pset->getType() == PalGeometry::Type::Point) {
             updatePoint(pset);
-        }
-        else{
-            double rx,ry;
-            if (pset->getDist (px, py, &rx, &ry) < updateLinePoly(pset)){
-                PointSet *point = new PointSet (ry, ry);
-                update (point);
+        } else {
+            double rx, ry;
+            if (pset->getDist(px, py, &rx, &ry) < updateLinePoly(pset)) {
+                PointSet *point = new PointSet(ry, ry);
+                update(point);
                 delete point;
             }
         }
@@ -488,7 +492,7 @@ namespace pal {
 
     double LabelPosition::PolygonCostCalculator::updateLinePoly (PointSet *pset) {
         int i, j, k;
-        int nbP = (pset->getType() == GEOS_POLYGON ? pset->getNbPoints() : pset->getNbPoints()-1);
+        int nbP = (pset->getType() == PalGeometry::Type::Polygon ? pset->getNbPoints() : pset->getNbPoints() - 1);
         double min_dist = DBL_MAX;
 
         for (i = 0;i < nbP;i++) {

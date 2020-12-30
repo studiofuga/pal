@@ -32,7 +32,9 @@
 #include <iostream>
 #include <sstream>
 
+#if defined(HAVE_GEOS)
 #include <geos_c.h>
+#endif
 
 #include "Geom.h"
 

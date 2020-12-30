@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef _EXCEPTION_H
-#define _EXCEPTION_H
+#ifndef PAL_EXCEPTION_H
+#define PAL_EXCEPTION_H
 
 #include <exception>
 

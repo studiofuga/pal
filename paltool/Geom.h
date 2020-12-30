@@ -29,7 +29,9 @@
 #ifndef _GEOM_H
 #define _GEOM_H
 
+#if defined(HAVE_GEOS)
 #include <geos_c.h>
+#endif
 
 #include <pal/palgeometry.h>
 

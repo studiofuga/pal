@@ -30,64 +30,65 @@
 #include <cmath>
 #include <cstring>
 #include <stddef.h>
+
+#if defined(HAVE_GEOS)
 #include <geos_c.h>
+#endif
 
 #include <pal/pal.h>
 
-#include "rtree.hpp"
 #include "pointset.h"
+#include "rtree.hpp"
 
 namespace pal {
 
-    class LabelPosition;
-    class Layer;
-    class Feature;
+class LabelPosition;
+class Layer;
+class Feature;
 
-    inline bool ptrFeatureCompare (Feature * a, Feature * b) {
-        return a == b;
-    }
+inline bool ptrFeatureCompare(Feature *a, Feature *b)
+{
+    return a == b;
+}
 
 
-    /**
+/**
      * \brief For translating feature from GEOS to Pal
      */
-    typedef struct Feat {
-        const GEOSGeometry *geom;
-        const char *id;
-        int type;
+typedef struct Feat {
+    PalGeometry::Ptr geom;
+    const char *id;
 
-        int nbPoints;
-        double *x;
-        double *y;
+    int nbPoints;
+    std::vector<double> x;
+    std::vector<double> y;
 
-        double minmax[4]; // {xmin, ymin, xmax, ymax}
+    double minmax[4];// {xmin, ymin, xmax, ymax}
 
-        int nbHoles;
-        PointSet **holes;
-
-    } Feat;
+    int nbHoles;
+    std::vector<PointSet> holes;
+} Feat;
 
 
-    /**
+/**
      * \brief split GEOS geom (multilinestring, multipoint, multipolygon) => (point, linestring, polygone)
      */
-    LinkedList<Feat*> * splitGeom (GEOSGeometry *the_geom, const char *geom_id);
+std::shared_ptr<LinkedList<std::shared_ptr<Feat>>> splitGeom(PalGeometry::Ptr the_geom, const char *geom_id);
 
-    typedef struct _feats {
-        Feature *feature;
-        PointSet *shape;
-        double priority;
-        int nblp;
-        LabelPosition **lPos;
-    } Feats;
+typedef struct _feats {
+    Feature *feature;
+    PointSet *shape;
+    double priority;
+    int nblp;
+    LabelPosition **lPos;
+} Feats;
 
 
-    typedef struct _elementary_transformation {
-        int feat;
-        int  old_label;
-        int  new_label;
-    } ElemTrans;
-
+typedef struct _elementary_transformation {
+    int feat;
+    int old_label;
+    int new_label;
+} ElemTrans;
 
 
 #define EPSILON 1e-9
@@ -187,50 +188,60 @@ namespace pal {
 
 
     /* From meters to PostScript Point */
-    inline void convert2pt (int *x, double scale, int dpi, Units from, double delta_canvas_width) {
-        *x = (int) ( ( unit_convert(*x, from, pal::METER, dpi, scale, delta_canvas_width) / scale) * 39.3700787402 * dpi + 0.5);
+    inline void convert2pt(int *x, double scale, int dpi, Units from, double delta_canvas_width)
+    {
+        *x = (int) ((unit_convert(*x, from, pal::METER, dpi, scale, delta_canvas_width) / scale) * 39.3700787402 * dpi + 0.5);
     }
 
 
-    inline int convert2pt (double x, double scale, int dpi, Units from, double delta_canvas_width) {
-        return (int) ( (unit_convert(x, from, pal::METER, dpi, scale, delta_canvas_width) / scale) * 39.3700787402 * dpi + 0.5);
+    inline int convert2pt(double x, double scale, int dpi, Units from, double delta_canvas_width)
+    {
+        return (int) ((unit_convert(x, from, pal::METER, dpi, scale, delta_canvas_width) / scale) * 39.3700787402 * dpi + 0.5);
     }
 
 
-    void sort (double* heap, int* x, int* y, int N);
+    void sort(double *heap, int *x, int *y, int N);
 
 
-    inline bool intCompare (int a, int b) {
+    inline bool intCompare(int a, int b)
+    {
         return a == b;
     }
 
-    inline bool strCompare (char * a, char * b) {
-        return strcmp (a, b) == 0;
+    inline bool strCompare(char *a, char *b)
+    {
+        return strcmp(a, b) == 0;
     }
 
-    inline bool ptrLPosCompare (LabelPosition * a, LabelPosition * b) {
+    inline bool ptrLPosCompare(std::shared_ptr<LabelPosition> a, std::shared_ptr<LabelPosition> b)
+    {
         return a == b;
     }
 
-    inline bool ptrPSetCompare (PointSet * a, PointSet * b) {
-        return a == b;
-    }
-
-
-    inline bool ptrFeatCompare (Feat * a, Feat * b) {
-        return a == b;
-    }
-
-    inline bool ptrFeatsCompare (Feats * a, Feats * b) {
-        return a == b;
-    }
-
-    inline bool ptrLayerCompare (Layer * a, Layer * b) {
+    inline bool ptrPSetCompare(std::shared_ptr<PointSet> a, std::shared_ptr<PointSet> b)
+    {
         return a == b;
     }
 
 
-    inline bool ptrETCompare (ElemTrans * a, ElemTrans * b) {
+    inline bool ptrFeatCompare(std::shared_ptr<Feat> a, std::shared_ptr<Feat> b)
+    {
+        return a == b;
+    }
+
+    inline bool ptrFeatsCompare(std::shared_ptr<Feats> a, std::shared_ptr<Feats> b)
+    {
+        return a == b;
+    }
+
+    inline bool ptrLayerCompare(Layer *a, Layer *b)
+    {
+        return a == b;
+    }
+
+
+    inline bool ptrETCompare(ElemTrans *a, ElemTrans *b)
+    {
         return a == b;
     }
 
@@ -240,10 +251,48 @@ namespace pal {
      * \param N number of items
      * \param greater function to compare two items
      **/
-    void sort (void** items, int N, bool (*greater) (void *l, void *r));
+    template<typename T>
+    void sortVector(std::vector<T> items, bool (*greater)(T const &l, T const &r))
+    {
+        auto N = items.size();
+        if (N <= 0)
+            return;
 
-    void tabcpy (int n, const int* const x, const int* const y,
-                 const double* const prob, int *cx, int *cy, double *p);
+        unsigned int n = (unsigned int) N, i = n / 2, parent, child;
+
+        T t;
+
+        for (;;) {
+            if (i > 0) {
+                i--;
+                t = items[i];
+            } else {
+                n--;
+                if (n == 0) return;
+                t = items[n];
+                items[n] = items[0];
+            }
+            parent = i;
+            child = i * 2 + 1;
+            while (child < n) {
+                if (child + 1 < n && greater(items[child + 1], items[child])) {
+                    child++;
+                }
+                if (greater(items[child], t)) {
+                    items[parent] = items[child];
+                    parent = child;
+                    child = parent * 2 + 1;
+                } else {
+                    break;
+                }
+            }
+            items[parent] = t;
+        }
+    }
+
+
+    void tabcpy(int n, const int *const x, const int *const y,
+                const double *const prob, int *cx, int *cy, double *p);
 
 
     typedef struct {

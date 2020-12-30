@@ -45,32 +45,33 @@ namespace pal {
      */
     class LabelPosition {
 
-        friend bool extractFeatCallback (Feature *ft_ptr, void*ctx);
-        friend bool xGrow (void *l, void *r);
-        friend bool yGrow (void *l, void *r);
-        friend bool xShrink (void *l, void *r);
-        friend bool yShrink (void *l, void *r);
-        friend bool costShrink (void *l, void *r);
-        friend bool costGrow (void *l, void *r);
-        friend bool pruneLabelPositionCallback (LabelPosition *lp, void *ctx);
+        friend bool extractFeatCallback(Feature *ft_ptr, void *ctx);
+        friend bool xGrow(void *l, void *r);
+        friend bool yGrow(void *l, void *r);
+        friend bool xShrink(void *l, void *r);
+        friend bool yShrink(void *l, void *r);
+        friend bool costShrink(void *l, void *r);
+        friend bool costGrow(std::shared_ptr<LabelPosition> l, std::shared_ptr<LabelPosition> r);
+        friend bool pruneLabelPositionCallback(LabelPosition *lp, void *ctx);
         //friend void setCost (int nblp, LabelPosition **lPos, int max_p, RTree<PointSet*, double, 2, double> *obstacles, double bbx[4], double bby[4]);
-        friend bool countOverlapCallback (LabelPosition *lp, void *ctx);
-        friend bool countFullOverlapCallback (LabelPosition *lp, void *ctx);
-        friend bool removeOverlapCallback (LabelPosition *lp, void *ctx);
-        friend bool falpCallback1 (LabelPosition *lp, void * ctx);
-        friend bool falpCallback2 (LabelPosition *lp, void * ctx);
-        friend bool subPartCallback (LabelPosition *lp, void *ctx);
-        friend bool chainCallback (LabelPosition *lp, void *context);
-        friend void ignoreLabel (LabelPosition*, PriorityQueue*, RTree<LabelPosition*, double, 2, double, 8, 4>*);
-        friend bool obstacleCallback (PointSet *feat, void *ctx);
+        friend bool countOverlapCallback(LabelPosition *lp, void *ctx);
+        friend bool countFullOverlapCallback(LabelPosition *lp, void *ctx);
+        friend bool removeOverlapCallback(LabelPosition *lp, void *ctx);
+        friend bool falpCallback1(LabelPosition *lp, void *ctx);
+        friend bool falpCallback2(LabelPosition *lp, void *ctx);
+        friend bool subPartCallback(LabelPosition *lp, void *ctx);
+        friend bool chainCallback(LabelPosition *lp, void *context);
+        friend void ignoreLabel(LabelPosition *, PriorityQueue *, RTree<LabelPosition *, double, 2, double, 8, 4> *);
+        friend bool obstacleCallback(std::shared_ptr<PointSet> feat, void *ctx);
 
-        friend bool updateCandidatesCost (LabelPosition *lp, void *context);
-        friend bool nokCallback (LabelPosition*, void*);
+        friend bool updateCandidatesCost(LabelPosition *lp, void *context);
+        friend bool nokCallback(LabelPosition *, void *);
 
         friend class Pal;
         friend class Problem;
         friend class Feature;
-        friend double dist_pointToLabel (double, double, LabelPosition*);
+        friend double dist_pointToLabel(double, double, LabelPosition *);
+
     private:
         //LabelPosition **overlaped;
         //int nbOverlap;
@@ -81,7 +82,7 @@ namespace pal {
         double x[4], y[4];
 
         double alpha;
-        Feature *feature;
+        std::shared_ptr<Feature> feature;
 
         // bug # 1 (maxence 10/23/2008)
         int probFeat;
@@ -106,10 +107,10 @@ namespace pal {
          * \param cost geographic cost
          * \param feature labelpos owners
          */
-        LabelPosition (int id, double x1, double y1,
-                       double w, double h,
-                       double alpha, double cost,
-                       Feature *feature);
+        LabelPosition(int id, double x1, double y1,
+                      double w, double h,
+                      double alpha, double cost,
+                      std::shared_ptr<Feature> feature);
 
         /**
          * \brief load a stored labelposition
@@ -119,7 +120,7 @@ namespace pal {
          * \param feature  this labelposition is for feature
          * \param file load from this stream
          */
-        LabelPosition (int id, Feature *feature, std::ifstream *file);
+        LabelPosition(int id, std::shared_ptr<Feature> feature, std::ifstream *file);
 
         /**
          * \brief Set cost to the smallest distance between lPos's centroid and a polygon stored in geoetry field
@@ -159,7 +160,7 @@ namespace pal {
         /** \brief return the feature corresponding to this labelposition
          * \return the feature
          */
-        Feature * getFeature();
+        std::shared_ptr<Feature> getFeature();
 
         /**
          * \brief get the down-left x coordinate
@@ -188,7 +189,7 @@ namespace pal {
          * \brief get a final lable from this
          * \return a new Label() object
          */
-        Label* toLabel (bool active);
+        std::shared_ptr<Label> toLabel(bool active);
 
         void print();
 

@@ -27,29 +27,34 @@
 #ifndef _LABEL_H
 #define _LABEL_H
 
+#include <cstring>
+#include <memory>
+
 namespace pal {
 
-    class LabelPosition;
-    class PalGeometry;
+class LabelPosition;
 
-    /**
+class PalGeometry;
+
+/**
      * \brief Represent a label to be displayed
      */
-    class Label {
+class Label {
 
-        friend class LabelPosition;
-    private:
-        double x[4];
-        double y[4];
+    friend class LabelPosition;
 
-        double a;
+private:
+    double x[4];
+    double y[4];
 
-        char *featureId;
-        char *lyrName;
+    double a;
 
-        PalGeometry *userGeom;
+    char *featureId;
+    char *lyrName;
 
-        /**
+    PalGeometry *userGeom;
+
+    /**
          * \brief Create a new label
          *
          * @param x x coordinate of down-left label corner
@@ -59,9 +64,9 @@ namespace pal {
          * @param lyrName name of the corresponding layer
          * @param userGeom PalGeometry of the feature
          */
-        Label (double x[4], double y[4], double alpha, const char *ftid, const char *lyrName, PalGeometry *userGeom);
+    Label(double x[4], double y[4], double alpha, const char *ftid, const char *lyrName, std::shared_ptr<PalGeometry> userGeom);
 
-    public:
+public:
         /**
          * \brief delete a label
          */
@@ -111,12 +116,14 @@ namespace pal {
          */
         const char *getFeatureId();
 
+#if defined(HAVE_GEOS)
         /**
          * \brief return user geometry (pal::Layer::registerFeature())
          * @return pointer to the user geometry
          */
-        PalGeometry * getGeometry();
-    };
+        PalGeometry *getGeometry();
+#endif
+};
 
 } // end namespace pal
 

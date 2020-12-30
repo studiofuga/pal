@@ -26,18 +26,20 @@
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include <cstdarg>
-#include <iostream>
-#include <fstream>
-#include <cstring>
 #include <cfloat>
+#include <cstdarg>
+#include <cstring>
 #include <ctime>
+#include <fstream>
+#include <iostream>
 #include <list>
-//#include <geos/geom/Geometry.h>
-#include <geos_c.h>
 
-#include <pal/pal.h>
+#if defined(HAVE_GEOS)
+#include <geos_c.h>
+#endif
+
 #include <pal/layer.h>
+#include <pal/pal.h>
 #include <pal/palexception.h>
 
 #include "linkedlist.hpp"
@@ -53,59 +55,66 @@
 
 namespace pal {
 
-    typedef struct {
-        //LabelPosition *lp;
-        double scale;
-        Pal* pal;
-        PointSet *obstacle;
-    } PruneCtx;
+typedef struct {
+    //LabelPosition *lp;
+    double scale;
+    Pal *pal;
+    PointSet *obstacle;
+} PruneCtx;
 
-    void geosError (const char *fmt, ...) {
-        va_list list;
-        va_start (list, fmt);
-        vfprintf (stderr, fmt, list);
-    }
+#if defined(HAVE_GEOS)
+void geosError(const char *fmt, ...)
+{
+    va_list list;
+    va_start(list, fmt);
+    vfprintf(stderr, fmt, list);
+}
 
-    void geosNotice (const char *fmt, ...) {
-        va_list list;
-        va_start (list, fmt);
-        vfprintf (stdout, fmt, list);
-    }
+void geosNotice(const char *fmt, ...)
+{
+    va_list list;
+    va_start(list, fmt);
+    vfprintf(stdout, fmt, list);
+}
+#endif
 
-    Pal::Pal() {
-        initGEOS (geosNotice, geosError);
+Pal::Pal()
+{
+#if defined(HAVE_GEOS)
+    initGEOS(geosNotice, geosError);
+#endif
 
-        layers = new std::list<Layer*>();
+    layers = new std::list<Layer *>();
 
-        lyrsMutex = new SimpleMutex();
+    lyrsMutex = new SimpleMutex();
 
-        ejChainDeg = 50;
-        tenure = 10;
-        candListSize = 0.2;
+    ejChainDeg = 50;
+    tenure = 10;
+    candListSize = 0.2;
 
-        tabuMinIt = 3;
-        tabuMaxIt = 4;
-        searchMethod = POPMUSIC_CHAIN;
-        popmusic_r = 30;
+    tabuMinIt = 3;
+    tabuMaxIt = 4;
+    searchMethod = POPMUSIC_CHAIN;
+    popmusic_r = 30;
 
-        searchMethod = CHAIN;
+    searchMethod = CHAIN;
 
-        setSearch (CHAIN);
+    setSearch(CHAIN);
 
-        dpi = 72;
-        point_p = 8;
-        line_p = 8;
-        poly_p = 8;
+    dpi = 72;
+    point_p = 8;
+    line_p = 8;
+    poly_p = 8;
 
-        this->map_unit = pal::METER;
+    this->map_unit = pal::METER;
 
-        std::cout.precision (12);
-        std::cerr.precision (12);
+    std::cout.precision(12);
+    std::cerr.precision(12);
 
-        tmpTime = 0;
-    }
+    tmpTime = 0;
+}
 
-    std::list<Layer*> *Pal::getLayers () {
+std::list<Layer*> *Pal::getLayers () {
         // TODO make const ! or whatever else
         return layers;
     }
@@ -147,7 +156,9 @@ namespace pal {
         delete layers;
         delete lyrsMutex;
 
+#if defined(HAVE_GEOS)
         finishGEOS();
+#endif
     }
 
 
@@ -242,7 +253,7 @@ namespace pal {
                     min[1] = ft_ptr->selfObs[i]->ymin;
                     max[0] = ft_ptr->selfObs[i]->xmax;
                     max[1] = ft_ptr->selfObs[i]->ymax;
-                    context->obstacles->Insert (min, max, ft_ptr->selfObs[i]);
+                    context->obstacles->Insert(min, max, ft_ptr->selfObs[i]);
 
                     if (!ft_ptr->selfObs[i]->holeOf) {
                         std::cout << "ERROR: SHOULD HAVE A PARENT!!!!!" << std::endl;
@@ -250,28 +261,29 @@ namespace pal {
                 }
 
 
-                LinkedList<Feats*> *feats = new LinkedList<Feats*> (ptrFeatsCompare);
+                auto feats = std::make_shared<LinkedList<std::shared_ptr<Feats>>>(ptrFeatsCompare);
 
-                if ( (ft_ptr->type == GEOS_LINESTRING)
-                        || ft_ptr->type == GEOS_POLYGON) {
+                if ((ft_ptr->type == PalGeometry::Type::LineString) || ft_ptr->type == PalGeometry::Type::Polygon) {
 
                     double bbx[4], bby[4];
 
-                    bbx[0] = context->bbox_min[0];   bbx[1] = context->bbox_max[0];
-                    bbx[2] = context->bbox_max[0];   bbx[3] = context->bbox_min[0];
+                    bbx[0] = context->bbox_min[0];
+                    bbx[1] = context->bbox_max[0];
+                    bbx[2] = context->bbox_max[0];
+                    bbx[3] = context->bbox_min[0];
 
-                    bby[0] = context->bbox_min[1];   bby[1] = context->bbox_min[1];
-                    bby[2] = context->bbox_max[1];   bby[3] = context->bbox_max[1];
+                    bby[0] = context->bbox_min[1];
+                    bby[1] = context->bbox_min[1];
+                    bby[2] = context->bbox_max[1];
+                    bby[3] = context->bbox_max[1];
 
-                    LinkedList<PointSet*> *shapes = new LinkedList<PointSet*> (ptrPSetCompare);
+                    auto shapes = std::make_shared<LinkedList<std::shared_ptr<PointSet>>>(ptrPSetCompare);
                     bool outside, inside;
 
-                    // Fetch coordinates 
-                    ft_ptr->fetchCoordinates ();
-                    PointSet *shape = ft_ptr->createProblemSpecificPointSet (bbx, bby, &outside, &inside);
+                    // Fetch coordinates
+                    ft_ptr->fetchCoordinates();
+                    auto shape = ft_ptr->createProblemSpecificPointSet(bbx, bby, &outside, &inside);
                     ft_ptr->releaseCoordinates();
-
-
 
 
                     if (inside) {
@@ -279,10 +291,10 @@ namespace pal {
                         shapes->push_back (shape);
                     } else {
                         // feature isn't completly in the math
-                        if (ft_ptr->type == GEOS_LINESTRING)
-                            PointSet::reduceLine (shape, shapes, bbx, bby);
+                        if (ft_ptr->type == PalGeometry::Type::LineString)
+                            PointSet::reduceLine(shape, shapes, bbx, bby);
                         else {
-                            PointSet::reducePolygon (shape, shapes, bbx, bby);
+                            PointSet::reducePolygon(shape, shapes, bbx, bby);
                         }
                     }
 

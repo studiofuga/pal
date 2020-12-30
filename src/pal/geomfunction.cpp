@@ -33,18 +33,19 @@
 
 namespace pal {
 
-    void heapsort (int *sid, int *id, const double* const x, int N) {
-        unsigned int n = N, i = n / 2, parent, child;
-        int tx;
-        for (;;) {
-            if (i > 0) {
-                i--;
-                tx = sid[i];
-            } else {
-                n--;
-                if (n == 0) return;
-                tx = sid[n];
-                sid[n] = sid[0];
+void heapsort(std::vector<int> sid, std::vector<int> id, std::vector<double> const &x, int N)
+{
+    unsigned int n = N, i = n / 2, parent, child;
+    int tx;
+    for (;;) {
+        if (i > 0) {
+            i--;
+            tx = sid[i];
+        } else {
+            n--;
+            if (n == 0) return;
+            tx = sid[n];
+            sid[n] = sid[0];
             }
             parent = i;
             child = i * 2 + 1;
@@ -64,41 +65,41 @@ namespace pal {
         }
     }
 
-
-    void heapsort2 (int *x, double* heap, int N) {
+    void heapsort2(std::vector<int> x, int xstart, std::vector<double> heap, int heapstart, int N)
+    {
         unsigned int n = N, i = n / 2, parent, child;
         double t;
         int tx;
         for (;;) {
             if (i > 0) {
                 i--;
-                t = heap[i];
-                tx = x[i];
+                t = heap[i + heapstart];
+                tx = x[i + xstart];
             } else {
                 n--;
                 if (n == 0) return;
-                t = heap[n];
-                tx = x[n];
-                heap[n] = heap[0];
-                x[n] = x[0];
+                t = heap[n + heapstart];
+                tx = x[n + xstart];
+                heap[n - heapstart] = heap[heapstart];
+                x[n + xstart] = x[xstart];
             }
             parent = i;
             child = i * 2 + 1;
             while (child < n) {
-                if (child + 1 < n  &&  heap[child + 1] > heap[child]) {
+                if (child + 1 < n && heap[child + 1 + heapstart] > heap[child + heapstart]) {
                     child++;
                 }
-                if (heap[child] > t) {
-                    heap[parent] = heap[child];
-                    x[parent] = x[child];
+                if (heap[child + heapstart] > t) {
+                    heap[parent + heapstart] = heap[child + heapstart];
+                    x[parent + xstart] = x[child + xstart];
                     parent = child;
                     child = parent * 2 + 1;
                 } else {
                     break;
                 }
             }
-            heap[parent] = t;
-            x[parent] = tx;
+            heap[parent + heapstart] = t;
+            x[parent + xstart] = tx;
         }
     }
 
@@ -331,7 +332,6 @@ namespace pal {
     }
 
 
-
     /*
      * \brief Compute the convex hull in O(n·log(n))
      * \param id set of point (i.e. point no 0 is (x,y) = x[id[0]],y[id[0]])
@@ -341,26 +341,31 @@ namespace pal {
      * \param cHull returns the point id (id of id's vector...) whom are parts of the convex hull
      * \return convexHull's size
      */
-    int convexHullId (int *id, const double* const x, const double* const y, int n, int *&cHull) {
+    int convexHullId(std::vector<int> id, std::vector<double> const &x, std::vector<double> const &y, std::vector<int> &cHull)
+    {
         int i;
+        auto n = x.size();
 
-        cHull = new int[n];
-        for (i = 0;i < n;i++) {
+        if (x.size() != y.size()) {
+            throw std::logic_error("convexHullId x and y have not the same size");
+        }
+
+        cHull.resize(n);
+        for (i = 0; i < n; i++) {
             cHull[i] = i;
         }
 
-
         if (n <= 3) return n;
 
-        int* stack = new int[n];
-        double* tan = new double [n];
+        std::vector<int> stack(n);
+        std::vector<double> tan(n);
         int ref;
 
         int second, top;
         double result;
 
         // find the lowest y value
-        heapsort (cHull, id, y, n);
+        heapsort(cHull, id, y, n);
 
         // find the lowest x value from the lowest y
         ref = 1;
@@ -377,7 +382,7 @@ namespace pal {
         }
 
         if (ref < n)
-            heapsort2 (cHull + ref, tan + ref, n - ref);
+            heapsort2(cHull, ref, tan, ref, n - ref);
 
         // the second point is in too
         stack[0] = cHull[0];
@@ -422,25 +427,28 @@ namespace pal {
             cHull[i] = stack[i];
         }
 
-        delete[] stack;
-        delete[] tan;
-
         return top + 1;
     }
 
-// reorder points to have cross prod ((x,y)[i], (x,y)[i+1), point) > 0 when point is outside
-    int reorderPolygon (int nbPoints, double *x, double *y) {
+    // reorder points to have cross prod ((x,y)[i], (x,y)[i+1), point) > 0 when point is outside
+    int reorderPolygon(std::vector<double> &x, std::vector<double> &y)
+    {
         int inc = 0;
-        int *cHull;
-        int cHullSize;
+        std::vector<int> cHull;
         int i;
 
-        int *pts = new int[nbPoints];
-        for (i = 0;i < nbPoints;i++)
+        if (x.size() != y.size()) {
+            throw std::logic_error("x and y have not the same size.");
+        }
+
+        auto nbPoints = x.size();
+        std::vector<int> pts(nbPoints);
+
+        for (i = 0; i < nbPoints; i++)
             pts[i] = i;
 
 
-        cHullSize = convexHullId (pts, x, y, nbPoints, cHull);
+        convexHullId(pts, x, y, cHull);
 
         if (pts[cHull[0]] < pts[cHull[1]] && pts[cHull[1]] < pts[cHull[2]])
             inc = 1;
@@ -455,6 +463,7 @@ namespace pal {
         else if (pts[cHull[0]] < pts[cHull[1]] && pts[cHull[1]] > pts[cHull[2]] && pts[cHull[2]] < pts[cHull[0]])
             inc = 1;
         else {
+#if 0
             std::cout << "Warning wrong cHull -> geometry: " << nbPoints << std::endl;
             for (i = 0;i < nbPoints;i++) {
                 std::cout << x[i] << ";" << y[i] << std::endl;
@@ -464,9 +473,8 @@ namespace pal {
                 std::cout << pts[cHull[i]] << " ";
             }
             std::cout << std::endl;
-            delete[] cHull;
-            delete[] pts;
-            return -1;
+#endif
+            throw std::runtime_error("Wrong cHull");
         }
 
         if (inc == -1) { // re-order points
@@ -483,24 +491,21 @@ namespace pal {
             }
         }
 
-
-        delete[] cHull;
-        delete[] pts;
-
         return 0;
-
     }
 
 
-    bool isPointInPolygon (int npol, double *xp, double *yp, double x, double y) {
+    bool isPointInPolygon(std::vector<double> const &xp, std::vector<double> &yp, double x, double y)
+    {
+        auto npol = xp.size();
         // code from Randolph Franklin (found at http://local.wasp.uwa.edu.au/~pbourke/geometry/insidepoly/)
         int i, j;
         bool c = false;
 
         for (i = 0, j = npol - 1; i < npol; j = i++) {
-            if ( ( ( (yp[i] <= y) && (y < yp[j])) ||
-                    ( (yp[j] <= y) && (y < yp[i])))
-                    && (x < (xp[j] - xp[i]) * (y - yp[i]) / (yp[j] - yp[i]) + xp[i])) {
+            if ((((yp[i] <= y) && (y < yp[j])) ||
+                 ((yp[j] <= y) && (y < yp[i]))) &&
+                (x < (xp[j] - xp[i]) * (y - yp[i]) / (yp[j] - yp[i]) + xp[i])) {
                 c = !c;
             }
         }

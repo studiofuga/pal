@@ -27,56 +27,131 @@
 #ifndef _PAL_GEOMETRY_H
 #define _PAL_GEOMETRY_H
 
-#include <list>
-#include <pal/label.h>
+#include "pal/label.h"
+
+#if defined(HAVE_GEOS)
 #include <geos_c.h>
+#endif
+
+#include "internalexception.h"
+
+#include <list>
+#include <memory>
+#include <numeric>
+#include <vector>
 
 namespace pal {
 
     /**
-     * \brief Interface that allow Pal to acces user's geometries
+     * \brief
      */
     class PalGeometry {
     public:
-        /*
-         * \brief get the geometry in WKB hexa format
-         * This method is called by Pal each time it needs a geom's coordinates
-         *
-         * @return WKB Hex buffer
-         */
-        //virtual char * getWkbHexBuffer() = 0;
+        using Ptr = std::shared_ptr<PalGeometry>;
 
+        enum class Type {
+            Undefined = -1,
+            Point=0, LineString, Polygon,
+            MultiPoint, MultiLineString, MultiPolygon
+        };
+
+        struct Point { double x = 0.0; double y = 0.0;};
+
+    private:
+        Type mType = Type::Undefined;
+
+        using Pointlist = std::vector<Point>;
+        using Featurelist = std::vector<Pointlist>;
+
+        Featurelist mFeatures;
+
+#if defined(HAVE_GEOS)
+        GEOSGeometry *geometry = nullptr;
+#endif
+
+    public:
+        explicit PalGeometry(std::vector<Point> const & pointlist) {
+            mFeatures.emplace_back(pointlist);
+        }
+
+        PalGeometry(PalGeometry const &) = default;
+        PalGeometry(PalGeometry &&) = default;
+
+        PalGeometry &operator =(PalGeometry const &) = default;
+        PalGeometry &operator =(PalGeometry &&) = default;
+
+        ~PalGeometry() = default;
+
+        auto type() const { return mType; }
+
+        auto getNumGeometries() const { return mFeatures.size();}
+
+        auto getGeometry(size_t index) const {
+            return PalGeometry(mFeatures[index]);
+        }
+
+        auto getExteriorRing() const {
+            if (type() != Type::Polygon)
+                throw InternalException::WrongGeometry();
+            return getGeometry(0);
+        }
+
+        auto getNumInteriorRings() const {
+            if (type() != Type::Polygon)
+                throw InternalException::WrongGeometry();
+            return mFeatures.size()-1;
+        }
+
+        auto getInteriorRing(int ring) const {
+            if (type() != Type::Polygon)
+                throw InternalException::WrongGeometry();
+            if (getNumInteriorRings() < 1)
+                throw InternalException::Empty();
+            return getGeometry(ring+1);
+        }
+
+        auto getNumCoordinates() const {
+            return std::accumulate(mFeatures.begin(), mFeatures.end(), 0,
+                                   [](size_t r, std::vector<Point> const &v){
+                return r+v.size();
+            });
+        }
+
+        auto getNumCoordinates(int index) const {
+            return mFeatures[index].size();
+        }
+
+        void copyCoordinatesSequence(int i, std::vector<double> &x, std::vector<double> &y)const {
+            auto sz = getNumCoordinates(i);
+            x.resize(sz);
+            y.resize(sz);
+
+            size_t ndx = 0;
+            for (auto const &p : mFeatures[i]) {
+                x[ndx] = p.x;
+                y[ndx] = p.y;
+            }
+        }
+
+#if defined(HAVE_GEOS)
         /**
          * \brief get the GEOSGeometry of the feature
          * This method is called by Pal each time it needs a geom's coordinates
          *
          * @return GEOSGeometry * a pointer the the geos geom
          */
-        virtual GEOSGeometry* getGeosGeometry() = 0;
-
+        GEOSGeometry* getGeosGeometry() const {
+            return geometry;
+        }
 
         /**
          * \brief Called by Pal when it doesn't need the coordinates anymore
          * @param the_geom is the geoms geom  from PalGeometry::getfeomGeometry()
          */
-        virtual void releaseGeosGeometry (GEOSGeometry *the_geom) = 0;
+        void releaseGeosGeometry (GEOSGeometry *the_geom) {
 
-
-        /*
-         * \brief Called by Pal when it doesn't need the coordinates anymore
-         * @param wkbBuffer is the WkbBuffer from PalGeometry::getWkbHexBuffer()
-         */
-        //virtual void releaseWkbHexBuffer(char *wkbBuffer) = 0;
-
-        /*
-         * \brief Give back a label to display
-         * Pal call this method when label will no move anymore.
-         *
-         * @param label the label to disploy
-         */
-        //virtual void addLabel(Label *label) = 0;
-
-        virtual ~PalGeometry() {}
+        };
+#endif
     };
 
 } // end namespace pal

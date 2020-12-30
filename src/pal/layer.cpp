@@ -27,7 +27,10 @@
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include <stddef.h>
+
+#if defined(HAVE_GEOS)
 #include <geos_c.h>
+#endif
 
 #include <iostream>
 #include <cstring>
@@ -269,6 +272,7 @@ namespace pal {
 }
 #endif
 
+#if defined(HAVE_GEOS)
 void Layer::registerFeature (const char *geom_id, PalGeometry *userGeom, double label_x, double label_y) {
     int j;
 
@@ -368,7 +372,7 @@ void Layer::registerFeature (const char *geom_id, PalGeometry *userGeom, double 
     }
     modMutex->unlock();
 }
-
+#endif
 
 Cell<Feature*>* Layer::getFeatureIt (const char * geom_id) {
     Cell<Feature*>** it = hashtable->find (geom_id);

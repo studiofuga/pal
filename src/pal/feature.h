@@ -27,67 +27,69 @@
 #ifndef _FEATURE_H
 #define _FEATURE_H
 
-#include <iostream>
-#include <fstream>
-#include <cmath>
-
-#include <geos_c.h>
-
-#include <pal/palgeometry.h>
-
 #include "pointset.h"
 #include "util.h"
 
+#if defined(HAVE_GEOS)
+#include "pal/palgeometry.h"
+#include <geos_c.h>
+#endif
+
+#include <cmath>
+#include <fstream>
+#include <iostream>
 
 namespace pal {
 
-    class Pal;
-    class Layer;
-    class LabelPosition;
-    class SimpleMutex;
+class Pal;
+class Layer;
+class LabelPosition;
+class SimpleMutex;
 
-    /**
+/**
      * \brief Main class to handle feature
      */
-    class Feature : public PointSet {
+class Feature : public PointSet {
 
-        friend class Pal;
-        friend class Layer;
-        friend class Problem;
-        friend class LabelPosition;
+    friend class Pal;
+    friend class Layer;
+    friend class Problem;
+    friend class LabelPosition;
 
-        friend bool extractFeatCallback (Feature *ft_ptr, void *ctx);
-        friend bool pruneLabelPositionCallback (LabelPosition *lp, void *ctx);
-        friend bool obstacleCallback (PointSet *feat, void *ctx);
-        //friend void setCost (int nblp, LabelPosition **lPos, int max_p, RTree<PointSet*, double, 2, double> *obstacles, double bbx[4], double bby[4]);
-        friend void releaseAllInIndex (RTree<PointSet*, double, 2, double, 8, 4>*);
-        friend bool releaseCallback (PointSet *pset, void *ctx);
-        friend bool filteringCallback (PointSet*, void*);
+    friend bool extractFeatCallback(Feature *ft_ptr, void *ctx);
+    friend bool pruneLabelPositionCallback(LabelPosition *lp, void *ctx);
+    friend bool obstacleCallback(std::shared_ptr<Feature> feat, void *ctx);
+    //friend void setCost (int nblp, LabelPosition **lPos, int max_p, RTree<PointSet*, double, 2, double> *obstacles, double bbx[4], double bby[4]);
+    friend void releaseAllInIndex(RTree<PointSet *, double, 2, double, 8, 4> *);
+    friend bool releaseCallback(PointSet *pset, void *ctx);
+    friend bool filteringCallback(PointSet *, void *);
 
-    protected:
-        //int id;   /* feature no id into layer */
-        double label_x;
-        double label_y;
+protected:
+    //int id;   /* feature no id into layer */
+    double label_x;
+    double label_y;
 
-        int nbSelfObs;
-        PointSet **selfObs;
+    int nbSelfObs;
+    PointSet **selfObs;
 
-        char *uid;
-        Layer *layer;
+    char *uid;
+    Layer *layer;
 
-        int distlabel;
+    int distlabel;
 
-        GEOSGeometry *the_geom;
-        int currentAccess;
+#if defined(HAVE_GEOS)
+    GEOSGeometry *the_geom;
+#endif
+    int currentAccess;
 
-        int nPart;
-        int part;
+    int nPart;
+    int part;
 
-        PalGeometry *userGeom;
+    std::shared_ptr<PalGeometry> userGeom;
 
-        SimpleMutex *accessMutex;
+    SimpleMutex *accessMutex;
 
-        /**
+    /**
          * \brief generate candidates for point feature
          * Generate candidates for point features
          * \param x x coordinates of the point
@@ -116,8 +118,8 @@ namespace pal {
          * \param mapShape a pointer to the polygon
          * \return the number of generated cadidates
          */
-        int setPositionForPolygon (double scale, LabelPosition ***lPos, PointSet *mapShape, double delta_width);
-
+        int setPositionForPolygon(double scale, std::vector<std::shared_ptr<LabelPosition>> &lPos,
+                                  std::shared_ptr<PointSet> mapShape, double delta_width);
 
 
         /**
@@ -131,6 +133,7 @@ namespace pal {
         //LinkedList<Feature*> *splitFeature( double bbox[4]);
 
 
+#if defined(HAVE_GEOS)
         /**
           * \brief create a new generic feature
           *
@@ -140,7 +143,7 @@ namespace pal {
           * \param nPart how many feats have same uid (MULTI..., Collection)
           */
         Feature (Feat *feat, Layer *layer, int part, int nPart, PalGeometry *userGeom);
-
+#endif
 
         /**
         * \brief Used to load pre-computed feature
@@ -185,11 +188,12 @@ namespace pal {
          * \param svgmap svg map file
          * \return the number of candidates in *lPos
          */
-        int setPosition (double scale, LabelPosition ***lPos, double bbox_min[2], double bbox_max[2], PointSet *mapShape, RTree<LabelPosition*, double, 2, double>*candidates
+        int setPosition(double scale, std::vector<std::shared_ptr<LabelPosition>> &lPos, double bbox_min[2], double bbox_max[2], PointSet *mapShape, RTree<LabelPosition *, double, 2, double> *candidates
 #ifdef _EXPORT_MAP_
-                         , std::ofstream &svgmap
+                        ,
+                        std::ofstream &svgmap
 #endif
-                        );
+        );
 
         /**
          * \brief get the unique id of the feature

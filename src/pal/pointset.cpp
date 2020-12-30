@@ -42,166 +42,98 @@
 namespace pal {
 
 
-    PointSet::PointSet() {
-        nbPoints = cHullSize =  0;
-        x = NULL;
-        y = NULL;
-        status = NULL;
-        cHull = NULL;
-        type = -1;
+PointSet::PointSet() = default;
+
+
+PointSet::PointSet(int nbPoints, double *xp, double *yp)
+    : x(nbPoints), y(nbPoints)
+{
+    int i;
+
+    for (i = 0; i < nbPoints; i++) {
+        x[i] = xp[i];
+        y[i] = yp[i];
     }
+    type = PalGeometry::Type::Undefined;
+}
 
-    PointSet::PointSet (int nbPoints, double *x, double *y){
-        this->nbPoints = nbPoints;
-        this->x = new double[nbPoints];
-        this->y = new double[nbPoints];
-        int i;
+PointSet::PointSet(PalGeometry::Type t, size_t numpoints)
+{
+    type = t;
+    x.resize(numpoints);
+    y.resize(numpoints);
+}
 
-        for (i=0;i<nbPoints;i++){
-           this->x[i] = x[i];
-           this->y[i] = y[i];
-        }
-        type = GEOS_POLYGON;
-        status = NULL;
-        cHull = NULL;
-    }
+PointSet::PointSet(double xp, double yp)
+    : x{xp}, y{yp}
+{
+    type = PalGeometry::Type::Point;
+}
 
-    PointSet::PointSet(double x, double y){
-        nbPoints = cHullSize =  1;
-        this->x = new double[1];
-        this->y = new double[1];
-        this->x[0] = x;
-        this->y[0] = y;
+int PointSet::getPath(int start, int stop, int *path_val)
+{
+    int nbPt = 0;
+    int i;
+    auto nbPoints = x.size();
 
-        status = NULL;
-        cHull = NULL;
-        parent = NULL;
-        holeOf = NULL;
-
-        type = GEOS_POINT;
-    }
-
-    PointSet::PointSet (PointSet &ps) {
-        int i;
-
-        nbPoints = ps.nbPoints;
-        x = new double[nbPoints];
-        y = new double[nbPoints];
-
-        if (ps.status)
-            status = new int[nbPoints];
-        else
-            status = NULL;
-
-
-        for (i = 0;i < nbPoints;i++) {
-            x[i] = ps.x[i];
-            y[i] = ps.y[i];
-            if (status)
-                status[i] = ps.status[i];
-        }
-
-        if (ps.cHull) {
-            cHullSize = ps.cHullSize;
-            for (i = 0;i < cHullSize;i++) {
-                cHull[i] = ps.cHull[i];
-            }
-        } else {
-            cHull = NULL;
-            cHullSize = 0;
-        }
-
-        type = ps.type;
-
-        holeOf = ps.holeOf;
-    }
-
-    PointSet::~PointSet() {
-        if (x)
-            delete[] x;
-        if (y)
-            delete[] y;
-
-        if (status)
-            delete[] status;
-        if (cHull)
-            delete[] cHull;
-    }
-
-
-    int PointSet::getPath (int start, int stop, int *path_val) {
-        int nbPt = 0;
-        int i;
 #ifdef _DEBUG_FULL_
-        std::cout << "start: " << start << std::endl;
-        std::cout << "stop:  " << stop << std::endl;
-        std::cout << "nbPoints:  " << nbPoints << std::endl;
+    std::cout << "start: " << start << std::endl;
+    std::cout << "stop:  " << stop << std::endl;
+    std::cout << "nbPoints:  " << nbPoints << std::endl;
 #endif
 
-        for (i = start; i != stop; i = (i + 1) % nbPoints, nbPt++) {
-            if (status[i] < 10 && status[i] != *path_val)
-                *path_val = 0;
-        }
-#ifdef _DEBUG_FULL_
-        std::cout << "new nbPoints:  " << nbPt << std::endl;
-#endif
-        return nbPt;
+    for (i = start; i != stop; i = (i + 1) % nbPoints, nbPt++) {
+        if (status[i] < 10 && status[i] != *path_val)
+            *path_val = 0;
     }
-
-
-
-    PointSet * PointSet::extractPath (int path, int nbPtPath, int nbBboxPt, double bbx[4], double bby[4], Crossing *start, Crossing *stop, int startPt) {
-
-        if (path == -1 || path == 0) {
-            int k, j, l;
-            PointSet *newShape = new PointSet();
-            newShape->nbPoints = nbPtPath + nbBboxPt + 2;
-            newShape->x = new double[newShape->nbPoints];
-            newShape->y = new double[newShape->nbPoints];
-            newShape->status = new int[newShape->nbPoints];
-            newShape->type = GEOS_POLYGON;
-            k = 0;
-
 #ifdef _DEBUG_FULL_
-            std::cout << "Keep # ot: " << newShape->nbPoints << " :: "  << path << std::endl;
-            std::cout << "path point:" << nbPtPath << std::endl;
+    std::cout << "new nbPoints:  " << nbPt << std::endl;
 #endif
-            // start => b
-            // stop => a
-
-            newShape->xmin = DBL_MAX;
-            newShape->xmax = -DBL_MAX;
-            newShape->ymin = DBL_MAX;
-            newShape->ymax = -DBL_MAX;
+    return nbPt;
+}
 
 
-            for (k = 0, j = startPt; k < nbPtPath; j = (j + 1) % nbPoints, k++) {
-                newShape->x[k] = x[j];
-                newShape->y[k] = y[j];
-                newShape->status[k] = status[j];
+std::shared_ptr<PointSet> PointSet::extractPath(int path, int nbPtPath, int nbBboxPt, double bbx[4], double bby[4],
+                                                std::shared_ptr<Crossing> start, std::shared_ptr<Crossing> stop, int startPt)
+{
+    if (path == -1 || path == 0) {
+        int k, j, l;
+        auto newShape = std::make_shared<PointSet>();
+
+        auto nbPoints = nbPtPath + nbBboxPt + 2;
+        newShape->x.resize(nbPoints);
+        newShape->y.resize(nbPoints);
+        newShape->type = PalGeometry::Type::Polygon;
+        k = 0;
+
 #ifdef _DEBUG_FULL_
-                std::cout << "    " << x[j] << ";" << y[j] << std::endl;
+        std::cout << "Keep # ot: " << newShape << nbPoints << " :: " << path << std::endl;
+        std::cout << "path point:" << nbPtPath << std::endl;
 #endif
-                newShape->xmin = (newShape->xmin < x[j] ? newShape->xmin : x[j]);
-                newShape->xmax = (newShape->xmax > x[j] ? newShape->xmax : x[j]);
-                newShape->ymin = (newShape->ymin < y[j] ? newShape->ymin : y[j]);
-                newShape->ymax = (newShape->ymax > y[j] ? newShape->ymax : y[j]);
-            }
+        // start => b
+        // stop => a
 
-            /*
-                  if (start->pt != stop->pt){
-                     newShape->x[k] = x[j];
-                     newShape->y[k] = y[j];
-                     newShape->status[k] = status[j];
-            #ifdef _DEBUG_
-                     std::cout << "    " << x[j] << ";" << y[j] << std::endl;
-            #endif
-                     k++;
-                  }
-            */
+        newShape->xmin = DBL_MAX;
+        newShape->xmax = -DBL_MAX;
+        newShape->ymin = DBL_MAX;
+        newShape->ymax = -DBL_MAX;
+
+
+        for (k = 0, j = startPt; k < nbPtPath; j = (j + 1) % nbPoints, k++) {
+            newShape->x[k] = x[j];
+            newShape->y[k] = y[j];
+            newShape->status[k] = status[j];
+#ifdef _DEBUG_FULL_
+            std::cout << "    " << x[j] << ";" << y[j] << std::endl;
+#endif
+            newShape->xmin = (newShape->xmin < x[j] ? newShape->xmin : x[j]);
+            newShape->xmax = (newShape->xmax > x[j] ? newShape->xmax : x[j]);
+            newShape->ymin = (newShape->ymin < y[j] ? newShape->ymin : y[j]);
+            newShape->ymax = (newShape->ymax > y[j] ? newShape->ymax : y[j]);
+        }
 
 #ifdef _DEBUG_FULL_
-            std::cout << "pta:" << std::endl;
+        std::cout << "pta:" << std::endl;
 #endif
             newShape->x[k] = stop->x;
             newShape->y[k] = stop->y;
@@ -245,7 +177,7 @@ namespace pal {
             if (start->way == -1)
                 newShape->status[k] = start->nextCorner + 10;
             else
-                newShape->status[k] = ( (start->nextCorner + 3) % 4) + 10;
+                newShape->status[k] = ((start->nextCorner + 3) % 4) + 10;
 
 #ifdef _DEBUG_FULL_
             std::cout << "ptb:" << std::endl;
@@ -253,141 +185,100 @@ namespace pal {
             std::cout << "k: " << k << "    nbPoints: " << newShape->nbPoints << std::endl;
 #endif
             return newShape;
-        } else
-            return NULL;
+    } else {
+        return nullptr;
+    }
+}
+
+
+void PointSet::reduceLine(std::shared_ptr<PointSet> line,
+                          std::shared_ptr<LinkedList<std::shared_ptr<PointSet>>> shapes_final,
+                          double bbx[4], double bby[4])
+{
+#ifdef _DEBUG_
+    std::cout << "reduceLine" << std::endl;
+#endif
+
+    int i, j;
+    int ba, bb;
+    std::shared_ptr<Crossing> crossing;
+    double crossingX, crossingY;
+    auto crossings = new LinkedList<std::shared_ptr<Crossing>>(ptrCrossingCompare);
+
+    int nbPoints = line->x.size();
+    auto const &x = line->x;
+    auto const &y = line->y;
+    auto const &status = line->status;
+
+#ifdef _DEBUG_FULL_
+    std::cout << "Coord:" << std::endl;
+    for (i = 0; i < nbPoints; i++) {
+        std::cout << x[i] << ";" << y[i] << std::endl;
+    }
+#endif
+
+    for (i = 0, j = i + 1; i < nbPoints - 1; i++, j++) {
+        for (ba = 0; ba < 4; ba++) {// for each bbox segement
+            bb = (ba + 1) % 4;
+
+#ifdef _DEBUG_FULL_
+            std::cout << "Test: " << i << "->" << j << " and " << ba << "-->" << bb << std::endl;
+#endif
+            if (computeSegIntersection(x[i], y[i], x[j], y[j],
+                                       bbx[ba], bby[ba], bbx[bb], bby[bb],
+                                       &crossingX, &crossingY)) {// seg[i->j] crossing bbox[ba->bb]
+
+                crossing = std::make_shared<Crossing>();
+                crossing->pt = i;
+                crossing->x = crossingX;// cross coordinate
+                crossing->y = crossingY;
+#ifdef _DEBUG_FULL_
+                std::cout << "Crossing: " << std::endl;
+                std::cout << "  cross point: " << crossingX << ";" << crossingY << std::endl;
+                std::cout << "           pt: " << i << "   (" << status[i] << ")" << std::endl;
+#endif
+                crossings->push_back(crossing);
+            }
+        }
     }
 
 
-    void PointSet::reduceLine (PointSet *line,
-                               LinkedList<PointSet*> *shapes_final,
-                               double bbx[4], double bby[4]) {
-#ifdef _DEBUG_
-        std::cout << "reduceLine" << std::endl;
-#endif
+    if (crossings->size() > 0) {
+        int start, stop;
+        double startX, startY;
+        double stopX, stopY;
 
-        int i, j;
-        int ba, bb;
-        Crossing *crossing;
-        double crossingX, crossingY;
-        LinkedList<Crossing*> *crossings = new LinkedList<Crossing*> (ptrCrossingCompare);
+        bool seg_complete;
 
-        int nbPoints = line->nbPoints;
-        double *x = line->x;
-        double *y = line->y;
-        int *status = line->status;
+        std::shared_ptr<Crossing> crossing;
+        startX = x[0];
+        startY = y[0];
+        start = 1;
+        while (crossings->size() > 0) {
+            crossing = crossings->pop_front();
 
-#ifdef _DEBUG_FULL_
-        std::cout << "Coord:" << std::endl;
-        for (i = 0;i < nbPoints;i++) {
-            std::cout << x[i] << ";" << y[i] << std::endl;
-        }
-#endif
+            // TODO
+            if (status[crossing->pt] == -1) {//  inside
+                stop = crossing->pt;
+                stopX = crossing->x;
+                stopY = crossing->y;
 
-        for (i = 0, j = i + 1;i < nbPoints - 1;i++, j++) {
-            for (ba = 0;ba < 4;ba++) { // for each bbox segement
-                bb = (ba + 1) % 4;
+                auto new_line = std::make_shared<PointSet>();
+                auto nbPoints = stop - start + 3;
+                new_line->type = PalGeometry::Type::LineString;
+                new_line->x.resize(nbPoints);
+                new_line->y.resize(nbPoints);
 
-#ifdef _DEBUG_FULL_
-                std::cout << "Test: " << i << "->" << j << " and " << ba << "-->" << bb  << std::endl;
-#endif
-                if (computeSegIntersection (x[i], y[i], x[j], y[j],
-                                            bbx[ba], bby[ba], bbx[bb], bby[bb],
-                                            &crossingX, &crossingY)) { // seg[i->j] crossing bbox[ba->bb]
-
-                    crossing = new Crossing();
-                    crossing->pt = i;
-                    crossing->x = crossingX; // cross coordinate
-                    crossing->y = crossingY;
-#ifdef _DEBUG_FULL_
-                    std::cout << "Crossing: " << std::endl;
-                    std::cout << "  cross point: " << crossingX << ";" << crossingY << std::endl;
-                    std::cout << "           pt: " << i  << "   (" << status[i] << ")" << std::endl;
-#endif
-                    crossings->push_back (crossing);
-                }
-
-            }
-        }
-
-
-        if (crossings->size() > 0) {
-            int start, stop;
-            double startX, startY;
-            double stopX, stopY;
-
-            bool seg_complete;
-
-            Crossing *crossing;
-            startX = x[0];
-            startY = y[0];
-            start = 1;
-            while (crossings->size() > 0) {
-                crossing = crossings->pop_front();
-
-                // TODO 
-                if (status[crossing->pt] == -1) { //  inside
-                    stop = crossing->pt;
-                    stopX = crossing->x;
-                    stopY = crossing->y;
-                    PointSet *new_line = new PointSet();
-                    new_line->nbPoints = stop - start + 3;
-                    new_line->type = GEOS_LINESTRING;
-                    new_line->x = new double [new_line->nbPoints];
-                    new_line->y = new double [new_line->nbPoints];
-
-                    new_line->x[0] = startX;
-                    new_line->y[0] = startY;
-
-                    new_line->xmin = new_line->x[0];
-                    new_line->xmax = new_line->x[0];
-
-                    new_line->ymin = new_line->y[0];
-                    new_line->ymax = new_line->y[0];
-
-                    for (j = start, i = 1;j <= stop;j++, i++) {
-                        new_line->x[i] = x[j];
-                        new_line->y[i] = y[j];
-
-                        new_line->xmin = (new_line->xmin < x[j] ? new_line->xmin : x[j]);
-                        new_line->xmax = (new_line->xmax > x[j] ? new_line->xmax : x[j]);
-                        new_line->ymin = (new_line->ymin < y[j] ? new_line->ymin : y[j]);
-                        new_line->ymax = (new_line->ymax > y[j] ? new_line->ymax : y[j]);
-                    }
-                    new_line->x[new_line->nbPoints-1] = stopX;
-                    new_line->y[new_line->nbPoints-1] = stopY;
-
-                    new_line->xmin = (new_line->xmin < stopX ? new_line->xmin : stopX);
-                    new_line->xmax = (new_line->xmax > stopX ? new_line->xmax : stopX);
-                    new_line->ymin = (new_line->ymin < stopY ? new_line->ymin : stopY);
-                    new_line->ymax = (new_line->ymax > stopY ? new_line->ymax : stopY);
-
-                    shapes_final->push_back (new_line);
-                    seg_complete = true;
-                } else {
-                    start = crossing->pt + 1;
-                    startX = crossing->x;
-                    startY = crossing->y;
-                    seg_complete = false;
-                }
-                delete crossing;
-            }
-
-            if (!seg_complete) {
-                PointSet * new_line = new PointSet();
-                new_line->type = GEOS_LINESTRING;
-                new_line->nbPoints = nbPoints - start + 1;
-                new_line->x = new double[new_line->nbPoints];
-                new_line->y = new double[new_line->nbPoints];
                 new_line->x[0] = startX;
                 new_line->y[0] = startY;
 
-                new_line->xmin = startX;
-                new_line->xmax = startX;
+                new_line->xmin = new_line->x[0];
+                new_line->xmax = new_line->x[0];
 
-                new_line->ymin = startY;
-                new_line->ymax = startY;
+                new_line->ymin = new_line->y[0];
+                new_line->ymax = new_line->y[0];
 
-                for (j = start, i = 1;j < nbPoints;j++, i++) {
+                for (j = start, i = 1; j <= stop; j++, i++) {
                     new_line->x[i] = x[j];
                     new_line->y[i] = y[j];
 
@@ -396,182 +287,222 @@ namespace pal {
                     new_line->ymin = (new_line->ymin < y[j] ? new_line->ymin : y[j]);
                     new_line->ymax = (new_line->ymax > y[j] ? new_line->ymax : y[j]);
                 }
-                shapes_final->push_back (new_line);
-            }
+                new_line->x[nbPoints - 1] = stopX;
+                new_line->y[nbPoints - 1] = stopY;
 
-            delete line;
-        } else {
-            // line is out
-#ifdef _DEBUG_FULL_
-            std::cout << "Line is completely outside" << std::endl;
-#endif
-            delete line;
+                new_line->xmin = (new_line->xmin < stopX ? new_line->xmin : stopX);
+                new_line->xmax = (new_line->xmax > stopX ? new_line->xmax : stopX);
+                new_line->ymin = (new_line->ymin < stopY ? new_line->ymin : stopY);
+                new_line->ymax = (new_line->ymax > stopY ? new_line->ymax : stopY);
+
+                shapes_final->push_back(new_line);
+                seg_complete = true;
+            } else {
+                start = crossing->pt + 1;
+                startX = crossing->x;
+                startY = crossing->y;
+                seg_complete = false;
+            }
         }
 
-        delete crossings;
+        if (!seg_complete) {
+            auto new_line = std::make_shared<PointSet>();
+            new_line->type = PalGeometry::Type::LineString;
+            nbPoints = nbPoints - start + 1;
+            new_line->x.resize(nbPoints);
+            new_line->y.resize(nbPoints);
+            new_line->x[0] = startX;
+            new_line->y[0] = startY;
+
+            new_line->xmin = startX;
+            new_line->xmax = startX;
+
+            new_line->ymin = startY;
+            new_line->ymax = startY;
+
+            for (j = start, i = 1; j < nbPoints; j++, i++) {
+                new_line->x[i] = x[j];
+                new_line->y[i] = y[j];
+
+                new_line->xmin = (new_line->xmin < x[j] ? new_line->xmin : x[j]);
+                new_line->xmax = (new_line->xmax > x[j] ? new_line->xmax : x[j]);
+                new_line->ymin = (new_line->ymin < y[j] ? new_line->ymin : y[j]);
+                new_line->ymax = (new_line->ymax > y[j] ? new_line->ymax : y[j]);
+            }
+            shapes_final->push_back(new_line);
+        }
+    } else {
+        // line is out
+#ifdef _DEBUG_FULL_
+        std::cout << "Line is completely outside" << std::endl;
+#endif
     }
 
-    /**
+    delete crossings;
+}
+
+/**
      * \brief takes shapes from shapes_toProcess, compute intersection with bbox
      * and puts new shapes into shapes_final
      *
      */
-    void PointSet::reducePolygon (PointSet *shape_toProcess, LinkedList<PointSet*> *shapes_final, double bbx[4], double bby[4]) {
-//#define _DEBUG_
-//#define _DEBUG_FULL_
+void PointSet::reducePolygon(std::shared_ptr<PointSet> shape_toProcess, LinkedList<std::shared_ptr<PointSet>> *shapes_final, double bbx[4], double bby[4])
+{
+    //#define _DEBUG_
+    //#define _DEBUG_FULL_
 
 #ifdef _DEBUG_
-        std::cout << "reducePolygon" << std::endl;
+    std::cout << "reducePolygon" << std::endl;
 #endif
 
-        int i, j;
+    int i, j;
 
-        int nbCrossingIter = 0;
+    int nbCrossingIter = 0;
 
 
-        LinkedList<PointSet*> *shapes_toProcess = new LinkedList<PointSet*> (ptrPSetCompare);
-        LinkedList<Crossing*> *crossings = new LinkedList<Crossing*> (ptrCrossingCompare);
+    auto shapes_toProcess = std::make_shared<LinkedList<std::shared_ptr<PointSet>>>(ptrPSetCompare);
+    auto crossings = std::make_shared<LinkedList<std::shared_ptr<Crossing>>>(ptrCrossingCompare);
 
-        shapes_toProcess->push_back (shape_toProcess);
+    shapes_toProcess->push_back(shape_toProcess);
 
-        // only keep inside bbox part of feature
-        PointSet *shape;
-        while (shapes_toProcess->size() > 0) { // foreach feature in toProcess
-            nbCrossingIter++;
-            double crossingX, crossingY;
+    // only keep inside bbox part of feature
+    std::shared_ptr<PointSet> shape;
+    while (shapes_toProcess->size() > 0) {// foreach feature in toProcess
+        nbCrossingIter++;
+        double crossingX, crossingY;
 
-            int ba, bb;
-            int k;
-            Crossing *crossing;
+        int ba, bb;
+        int k;
+        std::shared_ptr<Crossing> crossing;
 
-            shape = shapes_toProcess->pop_front();
+        shape = shapes_toProcess->pop_front();
 
 #ifdef _DEBUG_FULL_
-            std::cout << "ShapeToReduce:" << std::endl;
+        std::cout << "ShapeToReduce:" << std::endl;
 #endif
 
-            // search point where polygon and bbox cross
-            for (i = 0;i < shape->nbPoints;i++) { // foreach polygon segment
+        // search point where polygon and bbox cross
+        for (i = 0; i < shape->getNbPoints(); i++) {// foreach polygon segment
 #ifdef _DEBUG_FULL_
-                std::cout << shape->x[i] << ";" << shape->y[i] << std::endl;
+            std::cout << shape->x[i] << ";" << shape->y[i] << std::endl;
 #endif
-                j = (i + 1) % shape->nbPoints;
-                for (ba = 0;ba < 4;ba++) { // for each bbox segement
-                    bb = (ba + 1) % 4;
+            j = (i + 1) % shape->getNbPoints();
+            for (ba = 0; ba < 4; ba++) {// for each bbox segement
+                bb = (ba + 1) % 4;
 
-                    if (computeSegIntersection (shape->x[i], shape->y[i], shape->x[j], shape->y[j],
-                                                bbx[ba], bby[ba], bbx[bb], bby[bb],
-                                                &crossingX, &crossingY)) { // seg[i->j] crossing bbox[ba->bb]
+                if (computeSegIntersection(shape->x[i], shape->y[i], shape->x[j], shape->y[j],
+                                           bbx[ba], bby[ba], bbx[bb], bby[bb],
+                                           &crossingX, &crossingY)) {// seg[i->j] crossing bbox[ba->bb]
 
-                        if (vabs (cross_product (bbx[ba], bby[ba], bbx[bb], bby[bb], shape->x[i], shape->y[i])) > 0.00001) {
-                            // perhaps shape had  previuosly been splitted
-                            //   => new points generated by this operation are on the bbox border
-                            //   => avoid to consider this cross as valid ('status' for these new points are == bboxSegNumber + 10 and 15 for bbox corner
-                            if (shape->status[i] != ba + 10 && shape->status[j] != ba + 10
-                                    && shape->status[i] != 15 && shape->status[j] != 15) {
+                    if (vabs(cross_product(bbx[ba], bby[ba], bbx[bb], bby[bb], shape->x[i], shape->y[i])) > 0.00001) {
+                        // perhaps shape had  previuosly been splitted
+                        //   => new points generated by this operation are on the bbox border
+                        //   => avoid to consider this cross as valid ('status' for these new points are == bboxSegNumber + 10 and 15 for bbox corner
+                        if (shape->status[i] != ba + 10 && shape->status[j] != ba + 10 && shape->status[i] != 15 && shape->status[j] != 15) {
 
-                                crossing = new Crossing();
-                                crossing->pt = i;
-                                crossing->x = crossingX; // cross coordinate
-                                crossing->y = crossingY;
-                                crossing->seg = ba; // wich bbox edge ? 0=south, 1 = east, 2 = west, 3=west
+                            crossing = std::make_shared<Crossing>();
+                            crossing->pt = i;
+                            crossing->x = crossingX;// cross coordinate
+                            crossing->y = crossingY;
+                            crossing->seg = ba;// wich bbox edge ? 0=south, 1 = east, 2 = west, 3=west
 
-                                // cross->nextCorner denote on which bbox corner we fall first when following bbox inside the polygon
-                                if (cross_product (shape->x[crossing->pt], shape->y[crossing->pt],
-                                                   shape->x[ (crossing->pt+1) %shape->nbPoints],
-                                                   shape->y[ (crossing->pt+1) %shape->nbPoints],
-                                                   bbx[ba], bby[ba]) > 0) {
-                                    crossing->nextCorner = ba; // next corner is ba
-                                    crossing->way = -1; // have to go counter-clockwise
-                                } else {
-                                    crossing->nextCorner = bb; // next corner is bb
-                                    crossing->way = 1; // go clockwise
-                                }
-                                crossings->push_back (crossing);
-                                //break;
+                            // cross->nextCorner denote on which bbox corner we fall first when following bbox inside the polygon
+                            if (cross_product(shape->x[crossing->pt], shape->y[crossing->pt],
+                                              shape->x[(crossing->pt + 1) % shape->getNbPoints()],
+                                              shape->y[(crossing->pt + 1) % shape->getNbPoints()],
+                                              bbx[ba], bby[ba]) > 0) {
+                                crossing->nextCorner = ba;// next corner is ba
+                                crossing->way = -1;       // have to go counter-clockwise
+                            } else {
+                                crossing->nextCorner = bb;// next corner is bb
+                                crossing->way = 1;        // go clockwise
                             }
+                            crossings->push_back(crossing);
+                            //break;
                         }
                     }
                 }
             }
+        }
 
 
-            i = 0;
-            int crossingTabSize = crossings->size();
-            Crossing ** crossingTab = new Crossing*[crossingTabSize];
+        i = 0;
+        int crossingTabSize = crossings->size();
+        std::vector<std::shared_ptr<Crossing>> crossingTab(crossingTabSize);
 
-            // put crosses in crossTab
-            while (crossings->size() > 0) {
-                crossing = crossings->pop_front();
-                crossingTab[i] = crossing;
-                i++;
-            }
+        // put crosses in crossTab
+        while (crossings->size() > 0) {
+            crossing = crossings->pop_front();
+            crossingTab[i] = crossing;
+            i++;
+        }
 
-            if (crossingTabSize > 1) {
-                double initialDist;
-                double nextX;
-                double nextY;
-                double startX;
-                double startY;
+        if (crossingTabSize > 1) {
+            double initialDist;
+            double nextX;
+            double nextY;
+            double startX;
+            double startY;
 
-                initialDist = 0;
+            initialDist = 0;
 
-                // sort cross points, order counterclockwise by following bbox from down-left corner
-                for (k = 0;k < 4;k++) {
-                    startX = bbx[k];
-                    startY = bby[k];
-                    nextX = bbx[ (k+1) %4];
-                    nextY = bby[ (k+1) %4];
+            // sort cross points, order counterclockwise by following bbox from down-left corner
+            for (k = 0; k < 4; k++) {
+                startX = bbx[k];
+                startY = bby[k];
+                nextX = bbx[(k + 1) % 4];
+                nextY = bby[(k + 1) % 4];
 
-                    for (j = 0;j < crossingTabSize;j++) {
-                        // if the crossing point is colinear with bbox seg
-                        if (crossingTab[j]->seg == k) {
-                            crossingTab[j]->d = initialDist + dist_euc2d_sq (startX, startY, crossingTab[j]->x, crossingTab[j]->y);
-                        }
+                for (j = 0; j < crossingTabSize; j++) {
+                    // if the crossing point is colinear with bbox seg
+                    if (crossingTab[j]->seg == k) {
+                        crossingTab[j]->d = initialDist + dist_euc2d_sq(startX, startY, crossingTab[j]->x, crossingTab[j]->y);
                     }
-                    initialDist += dist_euc2d_sq (startX, startY, nextX, nextY);
                 }
-                sort ( (void**) crossingTab, crossingTabSize, crossingDist);
+                initialDist += dist_euc2d_sq(startX, startY, nextX, nextY);
+            }
+            sortVector(crossingTab, crossingDist);
 
-                // crossing are sorted
+            // crossing are sorted
 
 #ifdef _DEBUG_FULL_
-                for (i = 0;i < crossingTabSize;i++) {
-                    std::cout << "Crossing # " << i << ":" << std::endl;
-                    std::cout << "   pt: " << crossingTab[i]->pt << std::endl;
-                    std::cout << "   d: " << crossingTab[i]->d << std::endl;
-                    std::cout << "   (x,y): (" << crossingTab[i]->x << "," << crossingTab[i]->y << ")" << std::endl;
-                    std::cout << "   next corner: " << crossingTab[i]->nextCorner << std::endl;
-                    std::cout << "   way: " << crossingTab[i]->way << std::endl;
-                    std::cout << std::endl;
-                }
+            for (i = 0; i < crossingTabSize; i++) {
+                std::cout << "Crossing # " << i << ":" << std::endl;
+                std::cout << "   pt: " << crossingTab[i]->pt << std::endl;
+                std::cout << "   d: " << crossingTab[i]->d << std::endl;
+                std::cout << "   (x,y): (" << crossingTab[i]->x << "," << crossingTab[i]->y << ")" << std::endl;
+                std::cout << "   next corner: " << crossingTab[i]->nextCorner << std::endl;
+                std::cout << "   way: " << crossingTab[i]->way << std::endl;
+                std::cout << std::endl;
+            }
 #endif
 
 
-                // select tros crosses
-                Crossing *a = crossingTab[0];
-                Crossing *b = crossingTab[ (a->way + crossingTabSize) %crossingTabSize];
+            // select tros crosses
+            auto a = crossingTab[0];
+            auto b = crossingTab[(a->way + crossingTabSize) % crossingTabSize];
 
-                if (vabs (a->x - b->x) > 0.00001 || vabs (a->y - b->y) > 0.00001) {
+            if (vabs(a->x - b->x) > 0.00001 || vabs(a->y - b->y) > 0.00001) {
 #ifdef _DEBUG_FULL_
-                    std::cout << "crossing: " << a->x << ";" << a->y << std::endl;
-                    std::cout << "d: " << a->d << std::endl;
-                    std::cout << "a: 0           " << " b: " << (a->way + crossingTabSize) % crossingTabSize << std::endl;
+                std::cout << "crossing: " << a->x << ";" << a->y << std::endl;
+                std::cout << "d: " << a->d << std::endl;
+                std::cout << "a: 0           "
+                          << " b: " << (a->way + crossingTabSize) % crossingTabSize << std::endl;
 #endif
 
 
-                    int cornerA = a->nextCorner;
-                    j = 1;
-                    while (cornerA != b->nextCorner) {
+                int cornerA = a->nextCorner;
+                j = 1;
+                while (cornerA != b->nextCorner) {
                         j++;
                         cornerA = (cornerA + a->way + 4) % 4;
                     }
 
                     if (j == 4) {
-                        if (isSegIntersects (a->x, a->y,
-                                             bbx[a->nextCorner], bby[a->nextCorner],
-                                             shape->x[b->pt], shape->y[b->pt],
-                                             shape->x[ (b->pt + 1) %shape->nbPoints], shape->y[ (b->pt + 1) %shape->nbPoints])) {
+                        if (isSegIntersects(a->x, a->y,
+                                            bbx[a->nextCorner], bby[a->nextCorner],
+                                            shape->x[b->pt], shape->y[b->pt],
+                                            shape->x[(b->pt + 1) % shape->getNbPoints()], shape->y[(b->pt + 1) % shape->getNbPoints()])) {
                             j = 0;
                         }
                     }
@@ -613,13 +544,13 @@ namespace pal {
                     std::cout << "Path_b: " << path_b << std::endl;
 #endif
 
-                    nbPtPathA = shape->getPath ( (b->pt + 1) % shape->nbPoints,
-                                                 a->pt,
-                                                 &path_a);
+                    nbPtPathA = shape->getPath((b->pt + 1) % shape->getNbPoints(),
+                                               a->pt,
+                                               &path_a);
 
-                    nbPtPathB = shape->getPath ( (a->pt + 1) % shape->nbPoints,
-                                                 (b->pt + 1) % shape->nbPoints,
-                                                 &path_b);
+                    nbPtPathB = shape->getPath((a->pt + 1) % shape->getNbPoints(),
+                                               (b->pt + 1) % shape->getNbPoints(),
+                                               &path_b);
 
                     if (a->pt != b->pt) {
                         nbPtPathA++;
@@ -630,46 +561,45 @@ namespace pal {
                     std::cout << "Path_b: " << path_b << std::endl;
 #endif
 
-                    PointSet *newShape = NULL;
-                    Crossing *tmp;
-                    if ( (a->pt == b->pt) && (a->way == 1)) {
+                    std::shared_ptr<PointSet> newShape = nullptr;
+
+                    std::shared_ptr<Crossing> tmp;
+                    if ((a->pt == b->pt) && (a->way == 1)) {
                         tmp = a;
                         a = b;
                         b = tmp;
                     }
                     // split shape into two new shape
-                    if ( (newShape = shape->extractPath (path_a, nbPtPathA, nbBboxPoint, bbx, bby, b, a, (b->pt + 1) % shape->nbPoints))) {
-                        if (path_a == -1) { // new shape inside => push into shapes_final
-                            shapes_final->push_back (newShape);
-                        } else { // to drop or to resplit...
-                            shapes_toProcess->push_back (newShape);
+                    if ((newShape = shape->extractPath(path_a, nbPtPathA, nbBboxPoint, bbx, bby, b, a, (b->pt + 1) % shape->getNbPoints()))) {
+                        if (path_a == -1) {// new shape inside => push into shapes_final
+                            shapes_final->push_back(newShape);
+                        } else {// to drop or to resplit...
+                            shapes_toProcess->push_back(newShape);
                         }
                     }
 
-                    if ( (newShape = shape->extractPath (path_b, nbPtPathB, nbBboxPoint, bbx, bby, a, b, (a->pt + 1) % shape->nbPoints))) {
+                    if ((newShape = shape->extractPath(path_b, nbPtPathB, nbBboxPoint, bbx, bby, a, b, (a->pt + 1) % shape->getNbPoints()))) {
                         if (path_b == -1) {
-                            shapes_final->push_back (newShape);
+                            shapes_final->push_back(newShape);
                         } else {
-                            shapes_toProcess->push_back (newShape);
+                            shapes_toProcess->push_back(newShape);
                         }
                     }
+            } else {
+                if (vabs(a->x - shape->x[a->pt]) < 0.00001 && vabs(a->y - shape->y[a->pt]) < 0.00001) {
+                    shape->status[a->pt] = a->seg + 10;
+                }
+                if (vabs(a->x - shape->x[(a->pt + 1) % shape->getNbPoints()]) < 0.00001 && vabs(a->y - shape->y[(a->pt + 1) % shape->getNbPoints()]) < 0.00001) {
+                    shape->status[a->pt] = a->seg + 10;
+                }
+                if (vabs(a->x - shape->x[b->pt]) < 0.00001 && vabs(a->y - shape->y[b->pt]) < 0.00001) {
+                    shape->status[a->pt] = a->seg + 10;
+                }
+                if (vabs(a->x - shape->x[(b->pt + 1) % shape->getNbPoints()]) < 0.00001 && vabs(a->y - shape->y[(b->pt + 1) % shape->getNbPoints()]) < 0.00001) {
+                    shape->status[a->pt] = a->seg + 10;
+                }
 
-                    delete shape;
-                } else {
-                    if (vabs (a->x - shape->x[a->pt]) < 0.00001 && vabs (a->y - shape->y[a->pt]) < 0.00001) {
-                        shape->status[a->pt] = a->seg + 10;
-                    }
-                    if (vabs (a->x - shape->x[ (a->pt+1) %shape->nbPoints]) < 0.00001 && vabs (a->y - shape->y[ (a->pt+1) %shape->nbPoints]) < 0.00001) {
-                        shape->status[a->pt] = a->seg + 10;
-                    }
-                    if (vabs (a->x - shape->x[b->pt]) < 0.00001 && vabs (a->y - shape->y[b->pt]) < 0.00001) {
-                        shape->status[a->pt] = a->seg + 10;
-                    }
-                    if (vabs (a->x - shape->x[ (b->pt+1) %shape->nbPoints]) < 0.00001 && vabs (a->y - shape->y[ (b->pt+1) %shape->nbPoints]) < 0.00001) {
-                        shape->status[a->pt] = a->seg + 10;
-                    }
-
-                    shapes_toProcess->push_back (shape);
+                shapes_toProcess->push_back (shape);
                 }
             } else if (nbCrossingIter == 1 || crossingTabSize == 1) {  // First shape dont cross the bbox => outside or bbox is inside shape
                 bool check = false, ok = false;
@@ -678,7 +608,7 @@ namespace pal {
                     std::cout << "WARN : one crossing !!!!! " << std::endl;
                     bool in = true;
                     bool out = true;
-                    for (i = 0;i < shape->nbPoints;i++) {
+                    for (i = 0; i < shape->getNbPoints(); i++) {
 #ifdef _DEBUG_FULL_
                         std::cout << shape->x[i] << ";" << shape->y[i] << ";" << shape->status[i] << std::endl;
 #endif
@@ -691,7 +621,7 @@ namespace pal {
 
                     if (in) {
                         // shape is totally inside
-                        shapes_final->push_back (shape);
+                        shapes_final->push_back(shape);
                         ok = true;
                     } else
                         check = true;
@@ -699,170 +629,153 @@ namespace pal {
                 } else
                     check = true;
 
-                if (check && isPointInPolygon (shape->nbPoints,
-                                               shape->x, shape->y,
-                                               (bbx[0] + bbx[2]) / 2,
-                                               (bby[0] + bby[2]) / 2)) {
+                if (check && isPointInPolygon(shape->x, shape->y,
+                                              (bbx[0] + bbx[2]) / 2,
+                                              (bby[0] + bby[2]) / 2)) {
                     // bbox is inside the shape => reduce shape to bbox
-                    delete[] shape->status;
-                    delete[] shape->x;
-                    delete[] shape->y;
-                    shape->status = new int[4];
-                    shape->x = new double[4];
-                    shape->y = new double[4];
-                    shape->nbPoints = 4;
-                    for (i = 0;i < 4;i++) {
+                    shape->status.resize(4);
+                    shape->x.resize(4);
+                    shape->y.resize(4);
+                    for (i = 0; i < 4; i++) {
                         shape->status[i] = 0;
                         shape->x[i] = bbx[i];
                         shape->y[i] = bby[i];
                     }
-                    shapes_final->push_back (shape); // keep the bbox as shape
-                } else if (ok == false)
-                    delete shape;
+                    shapes_final->push_back(shape);// keep the bbox as shape
+                } else if (ok == false) {
+                    shape.reset();
+                }
             } else {
                 int stat = -1;
-                for (i = 0;i < shape->nbPoints;i++) {
+                for (i = 0; i < shape->getNbPoints(); i++) {
                     if (shape->status[i] == 1) {
                         stat = 1;
                         break;
                     }
                 }
-                if (stat > 0)
-                    delete shape;
-                else
-                    shapes_final->push_back (shape);
+                if (stat > 0) {
+                    shape.reset();
+                } else
+                    shapes_final->push_back(shape);
             }
-
-            for (i = 0;i < crossingTabSize;i++)
-                delete crossingTab[i];
-            delete[] crossingTab;
-        }
-
-        delete shapes_toProcess;
-        delete crossings;
     }
-//#undef _DEBUG_
-//#undef _DEBUG_FULL_
+}
 
-    PointSet* PointSet::extractShape (int nbPtSh, int imin, int imax, int fps, int fpe, double fptx, double fpty) {
+std::shared_ptr<PointSet> PointSet::extractShape(int nbPtSh, int imin, int imax,
+                                                 int fps, int fpe, double fptx, double fpty)
+{
 
-        int i, j;
+    int i, j;
 
-        PointSet *newShape = new PointSet();
+    auto newShape = std::make_shared<PointSet>();
 
-        newShape->type = GEOS_POLYGON;
+    newShape->type = PalGeometry::Type::Polygon;
 
-        newShape->nbPoints = nbPtSh;
-
-        newShape->x = new double[newShape->nbPoints];
-        newShape->y = new double[newShape->nbPoints];
-        newShape->status = NULL;
+    newShape->x.resize(nbPtSh);
+    newShape->y.resize(nbPtSh);
 #ifdef _DEBUG_FULL_
-        std::cout << "New shape: ";
+    std::cout << "New shape: ";
 #endif
-        // new shape # 1 from imin to imax
-        for (j = 0, i = imin;i != (imax + 1) % nbPoints;i = (i + 1) % nbPoints, j++) {
-            newShape->x[j] = x[i];
-            newShape->y[j] = y[i];
+    // new shape # 1 from imin to imax
+    for (j = 0, i = imin; i != (imax + 1) % nbPtSh; i = (i + 1) % nbPtSh, j++) {
+        newShape->x[j] = x[i];
+        newShape->y[j] = y[i];
+#ifdef _DEBUG_FULL_
+        std::cout << x[i] << ";" << y[i] << std::endl;
+#endif
+    }
+    // is the cutting point a new one ?
+    if (fps != fpe) {
+        // yes => so add it
+        newShape->x[j] = fptx;
+        newShape->y[j] = fpty;
+#ifdef _DEBUG_FULL_
+        std::cout << fptx << ";" << fpty << std::endl;
+#endif
+    }
+
+#ifdef _DEBUG_FULL_
+    std::cout << "J = " << j << "/" << newShape->nbPoints << std::endl;
+    std::cout << std::endl;
+    std::cout << "This:    " << this << std::endl;
+#endif
+
+    return newShape;
+}
+
+
+void PointSet::splitPolygons(std::shared_ptr<LinkedList<std::shared_ptr<PointSet>>> shapes_toProcess,
+                             std::shared_ptr<LinkedList<std::shared_ptr<PointSet>>> shapes_final,
+                             double xrm, double yrm, char *uid)
+{
+#ifdef _DEBUG_
+    std::cout << "splitPolygons: " << uid << std::endl;
+#endif
+    int i, j;
+
+    int nbp;
+
+    std::vector<int> pts;
+
+    int *cHull;
+    int cHullSize;
+
+    double cp;
+    double bestcp = 0;
+
+    double bestArea = 0;
+    double area;
+
+    double base;
+    double b, c;
+    double s;
+
+    int ihs;
+    int ihn;
+
+    int ips;
+    int ipn;
+
+    int holeS = -1;// hole start and end points
+    int holeE = -1;
+
+    int retainedPt = -1;
+    int pt = 0;
+
+    double labelArea = xrm * yrm;
+
+    while (shapes_toProcess->size() > 0) {
+#ifdef _DEBUG_FULL_
+        std::cout << "Shape popping()" << std::endl;
+#endif
+        auto shape = shapes_toProcess->pop_front();
+
+        auto const &x = shape->x;
+        auto const &y = shape->y;
+        nbp = shape->getNbPoints();
+        pts.resize(nbp);
+
+#ifdef _DEBUG_FULL_
+        std::cout << "nbp: " << nbp << std::endl;
+        std::cout << " PtSet: ";
+#endif
+
+        for (i = 0; i < nbp; i++) {
+            pts[i] = i;
 #ifdef _DEBUG_FULL_
             std::cout << x[i] << ";" << y[i] << std::endl;
 #endif
         }
-        // is the cutting point a new one ?
-        if (fps != fpe) {
-            // yes => so add it
-            newShape->x[j] = fptx;
-            newShape->y[j] = fpty;
-#ifdef _DEBUG_FULL_
-            std::cout << fptx << ";" << fpty << std::endl;
-#endif
-        }
 
 #ifdef _DEBUG_FULL_
-        std::cout << "J = " << j << "/" << newShape->nbPoints << std::endl;
         std::cout << std::endl;
-        std::cout << "This:    " << this << std::endl;
 #endif
 
-        return newShape;
-    }
+        // conpute convex hull
+        shape->cHullSize = convexHullId(pts, x, y, shape->cHull);
 
-
-    void PointSet::splitPolygons (LinkedList<PointSet*> *shapes_toProcess,
-                                  LinkedList<PointSet*> *shapes_final,
-                                  double xrm, double yrm , char *uid) {
-#ifdef _DEBUG_
-        std::cout << "splitPolygons: " << uid << std::endl;
-#endif
-        int i, j;
-
-        int nbp;
-        double *x;
-        double *y;
-
-        int *pts;
-
-        int *cHull;
-        int cHullSize;
-
-        double cp;
-        double bestcp = 0;
-
-        double bestArea = 0;
-        double area;
-
-        double base;
-        double b, c;
-        double s;
-
-        int ihs;
-        int ihn;
-
-        int ips;
-        int ipn;
-
-        int holeS = -1;  // hole start and end points
-        int holeE = -1;
-
-        int retainedPt = -1;
-        int pt = 0;
-
-        double labelArea = xrm * yrm;
-
-        PointSet *shape;
-
-        while (shapes_toProcess->size() > 0) {
-#ifdef _DEBUG_FULL_
-            std::cout << "Shape popping()" << std::endl;
-#endif
-            shape = shapes_toProcess->pop_front();
-
-            x = shape->x;
-            y = shape->y;
-            nbp = shape->nbPoints;
-            pts = new int[nbp];
-
-#ifdef _DEBUG_FULL_
-            std::cout << "nbp: " << nbp << std::endl;
-            std::cout << " PtSet: ";
-#endif
-
-            for (i = 0;i < nbp;i++) {
-                pts[i] = i;
-#ifdef _DEBUG_FULL_
-                std::cout << x[i] << ";" << y[i] << std::endl;
-#endif
-            }
-
-#ifdef _DEBUG_FULL_
-            std::cout << std::endl;
-#endif
-
-            // conpute convex hull
-            shape->cHullSize = convexHullId (pts, x, y, nbp, shape->cHull);
-
-            cHull = shape->cHull;
-            cHullSize = shape->cHullSize;
+        auto const &cHull = shape->cHull;
+        cHullSize = shape->cHullSize;
 
 
 #ifdef _DEBUG_FULL_
@@ -1059,14 +972,14 @@ namespace pal {
                     std::cout << std::endl << "Failed to split feature !!! (uid=" << uid << ")" << std::endl;
 #endif
                     if (shape->parent)
-                        delete shape;
+                        shape.reset();
                 }
                 // check for useless spliting
                 else if (imax == imin || nbPtSh1 <= 2 || nbPtSh2 <= 2 || nbPtSh1 == nbp  || nbPtSh2 == nbp) {
                     shapes_final->push_back (shape);
                 } else {
 
-                    PointSet *newShape = shape->extractShape (nbPtSh1, imin, imax, fps, fpe, fptx, fpty);
+                    auto newShape = shape->extractShape(nbPtSh1, imin, imax, fps, fpe, fptx, fpty);
 
                     if (shape->parent)
                         newShape->parent = shape->parent;
@@ -1104,92 +1017,90 @@ namespace pal {
                     shapes_toProcess->push_back (newShape);
 
                     if (shape->parent)
-                        delete shape;
+                        shape.reset();
                 }
             } else {
 #ifdef _DEBUG_FULL_
                 std::cout << "Put shape into shapes_final" << std::endl;
 #endif
-                shapes_final->push_back (shape);
+                shapes_final->push_back(shape);
             }
-            delete[] pts;
         }
+}
+
+
+std::shared_ptr<PointSet> PointSet::createProblemSpecificPointSet(double bbx[4], double bby[4], bool *outside, bool *inside)
+{
+    int i;
+#ifdef _DEBUG_FULL_
+    std::cout << "CreateProblemSpecific:" << std::endl;
+#endif
+    auto shape = std::make_shared<PointSet>(type, getNbPoints());
+
+    // TODO see if this can be moved in the constructor
+    shape->status.resize(getNbPoints());
+
+    shape->xmin = xmin;
+    shape->xmax = xmax;
+    shape->ymin = ymin;
+    shape->ymax = ymax;
+
+    *outside = true;
+    *inside = true;
+
+    // Build PointSet from geom => (x,y) coord, status[i] -> -1 inside, 1 outside , 0 on border
+
+    double epsilon = 0.000001;
+    for (i = 0; i < getNbPoints(); i++) {
+        shape->x[i] = this->x[i];
+        shape->y[i] = this->y[i];
+
+        double cp0 = cross_product(bbx[0], bby[0], bbx[1], bby[1],
+                                   shape->x[i], shape->y[i]);
+        double cp1 = cross_product(bbx[1], bby[1], bbx[2], bby[2],
+                                   shape->x[i], shape->y[i]);
+        double cp2 = cross_product(bbx[2], bby[2], bbx[3], bby[3],
+                                   shape->x[i], shape->y[i]);
+        double cp3 = cross_product(bbx[3], bby[3], bbx[0], bby[0],
+                                   shape->x[i], shape->y[i]);
+
+        if (cp0 > epsilon && cp1 > epsilon && cp2 > epsilon && cp3 > epsilon) {
+            shape->status[i] = -1;// point is inside the map extent
+            *outside = false;
+        } else if (vabs(cp0) < epsilon && cp1 > epsilon && cp2 > epsilon && cp3 > epsilon) {
+            shape->status[i] = 10;// Point is on the bottom border
+            *outside = false;
+        } else if (cp0 > epsilon && vabs(cp1) < epsilon && cp2 > epsilon && cp3 > epsilon) {
+            shape->status[i] = 11;// point is on the right border
+            *outside = false;
+        } else if (cp0 > epsilon && cp1 > epsilon && vabs(cp2) < epsilon && cp3 > epsilon) {
+            shape->status[i] = 12;// point is on the top border
+            *outside = false;
+        } else if (cp0 > epsilon && cp1 > epsilon && cp2 > epsilon && vabs(cp3) < epsilon) {
+            shape->status[i] = 13;// point is on the left border
+            *outside = false;
+        } else if (vabs(cp0) < epsilon && vabs(cp1) < epsilon && cp2 > epsilon && cp3 > epsilon) {
+            shape->status[i] = 15;// point is on the bottom right corner
+            *outside = false;
+        } else if (cp0 > epsilon && vabs(cp1) < epsilon && vabs(cp2) < epsilon && cp3 > epsilon) {
+            shape->status[i] = 15;// point is on the top right corner
+            *outside = false;
+        } else if (cp0 > epsilon && cp1 > epsilon && vabs(cp2) < epsilon && vabs(cp3) < epsilon) {
+            shape->status[i] = 15;// point is on the top left corner
+            *outside = false;
+        } else if (vabs(cp0) < epsilon && cp1 > epsilon && cp2 > epsilon && vabs(cp3) < epsilon) {
+            shape->status[i] = 15;// point is on the bottom left corner
+            *outside = false;
+        } else {
+            shape->status[i] = 1;// point is not in the map extent
+            *inside = false;
+        }
+#ifdef _DEBUG_FULL_
+        std::cout << shape->x[i] << ";" << shape->y[i] << ";" << shape->status[i] << ";" << cp0 << ";" << cp1 << ";" << cp2 << ";" << cp3 << std::endl;
+#endif
     }
 
-
-    PointSet * PointSet::createProblemSpecificPointSet (double bbx[4], double bby[4], bool *outside, bool *inside) {
-        int i;
-#ifdef _DEBUG_FULL_
-        std::cout << "CreateProblemSpecific:" << std::endl;
-#endif
-        PointSet *shape = new PointSet();
-        shape->status = new int[nbPoints];
-        shape->x = new double[nbPoints];
-        shape->y = new double[nbPoints];
-        shape->nbPoints = nbPoints;
-        shape->type = type;
-
-        shape->xmin = xmin;
-        shape->xmax = xmax;
-        shape->ymin = ymin;
-        shape->ymax = ymax;
-
-        *outside = true;
-        *inside = true;
-
-        // Build PointSet from geom => (x,y) coord, status[i] -> -1 inside, 1 outside , 0 on border
-
-        double epsilon = 0.000001;
-        for (i = 0;i < nbPoints;i++) {
-            shape->x[i] = this->x[i];
-            shape->y[i] = this->y[i];
-
-            double cp0 = cross_product (bbx[0], bby[0], bbx[1], bby[1],
-                                        shape->x[i], shape->y[i]);
-            double cp1 = cross_product (bbx[1], bby[1], bbx[2], bby[2],
-                                        shape->x[i], shape->y[i]);
-            double cp2 = cross_product (bbx[2], bby[2], bbx[3], bby[3],
-                                        shape->x[i], shape->y[i]);
-            double cp3 = cross_product (bbx[3], bby[3], bbx[0], bby[0],
-                                        shape->x[i], shape->y[i]);
-
-            if (cp0 > epsilon && cp1 > epsilon && cp2 > epsilon && cp3 > epsilon) {
-                shape->status[i] = -1;  // point is inside the map extent
-                *outside = false;
-            } else if (vabs (cp0) < epsilon && cp1 > epsilon && cp2 > epsilon && cp3 > epsilon) {
-                shape->status[i] = 10;  // Point is on the bottom border
-                *outside = false;
-            } else if (cp0 > epsilon && vabs (cp1) < epsilon && cp2 > epsilon && cp3 > epsilon) {
-                shape->status[i] = 11; // point is on the right border
-                *outside = false;
-            } else if (cp0 > epsilon && cp1 > epsilon && vabs (cp2) < epsilon && cp3 > epsilon) {
-                shape->status[i] = 12; // point is on the top border
-                *outside = false;
-            } else if (cp0 > epsilon && cp1 > epsilon && cp2 > epsilon && vabs (cp3) < epsilon) {
-                shape->status[i] = 13; // point is on the left border
-                *outside = false;
-            } else if (vabs (cp0) < epsilon && vabs (cp1) < epsilon && cp2 > epsilon && cp3 > epsilon) {
-                shape->status[i] = 15; // point is on the bottom right corner
-                *outside = false;
-            } else if (cp0 > epsilon && vabs (cp1) < epsilon && vabs (cp2) < epsilon && cp3 > epsilon) {
-                shape->status[i] = 15; // point is on the top right corner
-                *outside = false;
-            } else if (cp0 > epsilon && cp1 > epsilon && vabs (cp2) < epsilon && vabs (cp3) < epsilon) {
-                shape->status[i] = 15; // point is on the top left corner
-                *outside = false;
-            } else if (vabs (cp0) < epsilon && cp1 > epsilon && cp2 > epsilon && vabs (cp3) < epsilon) {
-                shape->status[i] = 15; // point is on the bottom left corner
-                *outside = false;
-            } else {
-                shape->status[i] = 1; // point is not in the map extent
-                *inside = false;
-            }
-#ifdef _DEBUG_FULL_
-            std::cout << shape->x[i] << ";" << shape->y[i] << ";" << shape->status[i] << ";" << cp0 << ";" << cp1 << ";" << cp2 << ";" << cp3 << std::endl;
-#endif
-        }
-
-        shape->holeOf = NULL;
+    shape->holeOf = NULL;
         shape->parent = NULL;
 
         return shape;
@@ -1289,12 +1200,12 @@ namespace pal {
             // adjust all points
             for (i = 0;i < 16;i += 4) {
 
-                alpha_seg = ( (i / 4 > 0 ? (i / 4) - 1 : 3)) * M_PI / 2 + alpha;
+                alpha_seg = ((i / 4 > 0 ? (i / 4) - 1 : 3)) * M_PI / 2 + alpha;
 
                 best_cp = DBL_MAX;
                 nearestPoint = -1;
-                for (j = 0;j < nbPoints;j++) {
-                    cp = cross_product (bb[i+2], bb[i+3], bb[i], bb[i+1], x[cHull[j]], y[cHull[j]]);
+                for (j = 0; j < getNbPoints(); j++) {
+                    cp = cross_product(bb[i + 2], bb[i + 3], bb[i], bb[i + 1], x[cHull[j]], y[cHull[j]]);
                     if (cp < best_cp) {
                         best_cp = cp;
                         nearestPoint = cHull[j];
@@ -1303,13 +1214,13 @@ namespace pal {
 
                 distNearestPoint = best_cp / dref;
 
-                d1 = cos (alpha_seg) * distNearestPoint;
-                d2 = sin (alpha_seg) * distNearestPoint;
+                d1 = cos(alpha_seg) * distNearestPoint;
+                d2 = sin(alpha_seg) * distNearestPoint;
 
-                bb[i]   += d1; // x
-                bb[i+1] += d2; // y
-                bb[i+2] += d1; // x
-                bb[i+3] += d2; // y
+                bb[i] += d1;    // x
+                bb[i + 1] += d2;// y
+                bb[i + 2] += d1;// x
+                bb[i + 3] += d2;// y
             }
 
             // compute and compare AREA
@@ -1473,23 +1384,24 @@ namespace pal {
     }
 #endif
 
-    double PointSet::getDist (double px, double py, double *rx, double *ry) {
-        if (nbPoints == 1 || type == GEOS_POINT) {
-            if (rx && ry){
+    double PointSet::getDist(double px, double py, double *rx, double *ry)
+    {
+        if (getNbPoints() == 1 || type == PalGeometry::Type::Point) {
+            if (rx && ry) {
                 *rx = x[0];
                 *ry = y[0];
             }
-            return dist_euc2d_sq (x[0], y[0], px, py);
+            return dist_euc2d_sq(x[0], y[0], px, py);
         }
 
-        int a,b;
-        int nbP = (type == GEOS_POLYGON ? nbPoints : nbPoints -1);
+        int a, b;
+        int nbP = (type == PalGeometry::Type::Polygon ? getNbPoints() : getNbPoints() - 1);
 
         double best_dist = DBL_MAX;
         double d;
 
-        for (a=0;a<nbP;a++){
-            b = (a+1) % nbPoints;
+        for (a = 0; a < nbP; a++) {
+            b = (a + 1) % getNbPoints();
 
             double px2, py2;
             px2 = px - y[b] + y[a];
@@ -1498,20 +1410,18 @@ namespace pal {
 
             // (px,py)->(px2,py2) is a line perpendicular to a->b
             // Check the line p->p2 cross the segment a->b
-            if (computeLineSegIntersection (px, py, px2, py2,
-                                            x[a], y[a], x[b], y[b],
-                                            &ix, &iy)){
+            if (computeLineSegIntersection(px, py, px2, py2,
+                                           x[a], y[a], x[b], y[b],
+                                           &ix, &iy)) {
                 d = dist_euc2d_sq(px, py, ix, iy);
-            }
-            else{
-                double d1 = dist_euc2d_sq (x[a], y[a], px, py);
-                double d2 = dist_euc2d_sq (x[b], y[b], px, py);
-                if (d1 < d2){
+            } else {
+                double d1 = dist_euc2d_sq(x[a], y[a], px, py);
+                double d2 = dist_euc2d_sq(x[b], y[b], px, py);
+                if (d1 < d2) {
                     d = d1;
                     ix = x[a];
                     iy = y[a];
-                }
-                else{
+                } else {
                     d = d2;
                     ix = x[b];
                     iy = y[b];

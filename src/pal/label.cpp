@@ -26,14 +26,19 @@
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include <cstring>
+#include "pal/label.h"
 
-#include <pal/label.h>
-#include <pal/palgeometry.h>
+#if defined(HAVE_GEOS)
+#include "pal/palgeometry.h"
+#endif
+
+#include <cstring>
 
 namespace pal {
 
-    Label::Label (double x[4], double y[4], double alpha, const char *ftid, const char *lyrName, PalGeometry *userGeom) : a (alpha), userGeom (userGeom) {
+#if defined(HAVE_GEOS)
+    Label::Label (double x[4], double y[4], double alpha, const char *ftid, const char *lyrName, PalGeometry *userGeom)
+    : a (alpha), userGeom (userGeom) {
 
         for (int i = 0;i < 4;i++) {
             this->x[i] = x[i];
@@ -46,6 +51,7 @@ namespace pal {
         this->lyrName = new char[strlen (lyrName) +1];
         strcpy (this->lyrName, lyrName);
     }
+#endif
 
     Label::~Label() {
         delete[] featureId;
@@ -68,9 +74,11 @@ namespace pal {
         return (i < 4 ? y[i] : -1);
     }
 
+#if defined(HAVE_GEOS)
     PalGeometry *Label::getGeometry() {
         return userGeom;
     }
+#endif
 
     double Label::getRotation() {
         return a;

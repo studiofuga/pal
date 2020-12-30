@@ -53,139 +53,122 @@
 
 namespace pal {
 
-    Feature::Feature (Feat *feat, Layer *layer, int part, int nPart, PalGeometry *userGeom) :
-            layer (layer), nPart (nPart), part (part), userGeom (userGeom) {
+#if defined(HAVE_GEOS)
+Feature::Feature(Feat *feat, Layer *layer, int part, int nPart, PalGeometry *userGeom) : layer(layer), nPart(nPart), part(part), userGeom(userGeom)
+{
 
-        this->uid = new char[strlen (feat->id) +1];
-        strcpy (this->uid, feat->id);
+    this->uid = new char[strlen(feat->id) + 1];
+    strcpy(this->uid, feat->id);
 
-        label_x = -1;
-        label_y = -1;
+    label_x = -1;
+    label_y = -1;
 
-        xmin = feat->minmax[0];
-        xmax = feat->minmax[2];
-        ymin = feat->minmax[1];
-        ymax = feat->minmax[3];
+    xmin = feat->minmax[0];
+    xmax = feat->minmax[2];
+    ymin = feat->minmax[1];
+    ymax = feat->minmax[3];
 
-        nbPoints = feat->nbPoints;
-        x = feat->x;
-        y = feat->y;
-
-
-        int i;
+    nbPoints = feat->nbPoints;
+    x = feat->x;
+    y = feat->y;
 
 
-        nbSelfObs = feat->nbHoles;
-        selfObs = feat->holes;
-
-        holeOf = NULL;
-        for (i = 0;i < nbSelfObs;i++) {
-            selfObs[i]->holeOf = this;
-        }
+    int i;
 
 
-        this->type = feat->type;
+    nbSelfObs = feat->nbHoles;
+    selfObs = feat->holes;
+
+    holeOf = NULL;
+    for (i = 0; i < nbSelfObs; i++) {
+        selfObs[i]->holeOf = this;
+    }
+
+
+    this->type = feat->type;
 
 #ifdef _DEBUG_
-        std::cout << "Corrdinates for " << layer->name << "/" << uid << " :" << nbPoints << " pts" << std::endl;
-        for (i = 0;i < nbPoints;i++) {
-            std::cout << x[i] << ";" << y[i] << std::endl;
-        }
+    std::cout << "Corrdinates for " << layer->name << "/" << uid << " :" << nbPoints << " pts" << std::endl;
+    for (i = 0; i < nbPoints; i++) {
+        std::cout << x[i] << ";" << y[i] << std::endl;
+    }
 #endif
 
-        distlabel = 0;
-        currentAccess = 0;
+    distlabel = 0;
+    currentAccess = 0;
 
-        accessMutex = new SimpleMutex();
-    }
+    accessMutex = new SimpleMutex();
+}
+#endif
 
+Feature::~Feature() = default;
 
-    Feature::~Feature() {
-        if (x || y) {
-            std::cout << "Warning: coordinates not released: " << layer->name << "/" << uid << std::endl;
-        }
-
-        if (uid) {
-            delete[] uid;
-        }
-
-        if (nbSelfObs) {
-            int i;
-            for (i = 0;i < nbSelfObs;i++) {
-                if (selfObs[i]->x || selfObs[i]->y) {
-                    std::cout << "Warning: hole coordinates not released" << std::endl;
-                }
-                delete selfObs[i];
-            }
-            delete[] selfObs;
-        }
-
-        delete accessMutex;
-    }
-
-    Layer *Feature::getLayer() {
-        return layer;
-    }
+Layer *Feature::getLayer()
+{
+    return layer;
+}
 
 
-    const char * Feature::getUID() {
-        return uid;
-    }
+const char *Feature::getUID()
+{
+    return uid;
+}
 
-    int Feature::setPositionForPoint (double x, double y, double scale, LabelPosition ***lPos, double delta_width) {
+int Feature::setPositionForPoint(double x, double y, double scale, LabelPosition ***lPos, double delta_width)
+{
 
 #ifdef _DEBUG_
-        std::cout << "SetPosition (point) : " << layer->name << "/" << uid << std::endl;
+    std::cout << "SetPosition (point) : " << layer->name << "/" << uid << std::endl;
 #endif
 
-        int dpi = layer->pal->dpi;
+    int dpi = layer->pal->dpi;
 
 
-        double xrm;
-        double yrm;
+    double xrm;
+    double yrm;
 
-        xrm = unit_convert(label_x, 
-                layer->label_unit, 
-                layer->pal->map_unit, 
-                dpi, scale, delta_width);
+    xrm = unit_convert(label_x,
+                       layer->label_unit,
+                       layer->pal->map_unit,
+                       dpi, scale, delta_width);
 
-        yrm = unit_convert(label_y,
-                layer->label_unit, 
-                layer->pal->map_unit, 
-                dpi, scale, delta_width);
+    yrm = unit_convert(label_y,
+                       layer->label_unit,
+                       layer->pal->map_unit,
+                       dpi, scale, delta_width);
 
-        int nbp = layer->pal->point_p;
+    int nbp = layer->pal->point_p;
 
-        //std::cout << "Nbp : " << nbp << std::endl;
+    //std::cout << "Nbp : " << nbp << std::endl;
 
-        int i;
-        int icost = 0;
-        int inc = 2;
+    int i;
+    int icost = 0;
+    int inc = 2;
 
-        double alpha;
-        double beta = 2 * M_PI / nbp; /* angle bw 2 pos */
+    double alpha;
+    double beta = 2 * M_PI / nbp; /* angle bw 2 pos */
 
-        // uncomment for Wolff 2 position model test on RailwayStation
-        //if (nbp==2)
-        //   beta = M_PI/2;
+    // uncomment for Wolff 2 position model test on RailwayStation
+    //if (nbp==2)
+    //   beta = M_PI/2;
 
-        double distlabel = unit_convert(this->distlabel,
-                pal::PIXEL, 
-                layer->pal->map_unit, 
-                dpi, scale, delta_width);
+    double distlabel = unit_convert(this->distlabel,
+                                    pal::PIXEL,
+                                    layer->pal->map_unit,
+                                    dpi, scale, delta_width);
 
-        double lx, ly; /* label pos */
+    double lx, ly; /* label pos */
 
-        /* various alpha */
-        double a90  = M_PI / 2;
-        double a180 = M_PI;
-        double a270 = a180 + a90;
-        double a360 = 2 * M_PI;
+    /* various alpha */
+    double a90 = M_PI / 2;
+    double a180 = M_PI;
+    double a270 = a180 + a90;
+    double a360 = 2 * M_PI;
 
 
-        double gamma1, gamma2;
+    double gamma1, gamma2;
 
-        if (distlabel > 0) {
+    if (distlabel > 0) {
             gamma1 = atan2 (yrm / 2, distlabel + xrm / 2);
             gamma2 = atan2 (xrm / 2, distlabel + yrm / 2);
         } else {
@@ -310,36 +293,34 @@ namespace pal {
 
         //shapes_final     = new LinkedList<PointSet*>(ptrPSetCompare);
 
-        LinkedList<LabelPosition*> *positions = new LinkedList<LabelPosition*> (ptrLPosCompare);
+        LinkedList<LabelPosition *> *positions = new LinkedList<LabelPosition *>(ptrLPosCompare);
 
         int nbPoints;
-        double *x;
-        double *y;
 
-        PointSet * line = mapShape;
+        PointSet *line = mapShape;
 #ifdef _DEBUG_FULL_
         std::cout << "New line of " << line->nbPoints << " points with label " << xrm << "x" << yrm << std::endl;
 #endif
 
-        nbPoints = line->nbPoints;
-        x = line->x;
-        y = line->y;
+        nbPoints = line->getNbPoints();
+        auto const &x = line->x;
+        auto const &y = line->y;
 
-        d = new double[nbPoints-1];
+        d = new double[nbPoints - 1];
         ad = new double[nbPoints];
 
-        ll = 0.0; // line length
-        for (i = 0;i < line->nbPoints - 1;i++) {
+        ll = 0.0;// line length
+        for (i = 0; i < line->getNbPoints() - 1; i++) {
             if (i == 0)
                 ad[i] = 0;
             else
-                ad[i] = ad[i-1] + d[i-1];
+                ad[i] = ad[i - 1] + d[i - 1];
 
-            d[i] = dist_euc2d (x[i], y[i], x[i+1], y[i+1]);
+            d[i] = dist_euc2d(x[i], y[i], x[i + 1], y[i + 1]);
             ll += d[i];
         }
 
-        ad[line->nbPoints-1] = ll;
+        ad[line->getNbPoints() - 1] = ll;
 
 
         nbls = (int) (ll / xrm); // ratio bw line length and label width
@@ -454,7 +435,8 @@ namespace pal {
      *
      */
 
-    int Feature::setPositionForPolygon (double scale, LabelPosition ***lPos, PointSet *mapShape, double delta_width) {
+    int Feature::setPositionForPolygon(double scale, std::vector<std::shared_ptr<LabelPosition>> &lPos, std::shared_ptr<PointSet> mapShape, double delta_width)
+    {
 
 #ifdef _DEBUG_
         std::cout << "SetPosition (polygon) : " << layer->name << "/" << uid << std::endl;
@@ -466,60 +448,52 @@ namespace pal {
         double xrm;
         double yrm;
 
-        xrm = unit_convert(label_x, 
-                layer->label_unit, 
-                layer->pal->map_unit, 
-                layer->pal->dpi, scale, delta_width);
+        xrm = unit_convert(label_x,
+                           layer->label_unit,
+                           layer->pal->map_unit,
+                           layer->pal->dpi, scale, delta_width);
 
         yrm = unit_convert(label_y,
-                layer->label_unit, 
-                layer->pal->map_unit, 
-                layer->pal->dpi, scale, delta_width);
+                           layer->label_unit,
+                           layer->pal->map_unit,
+                           layer->pal->dpi, scale, delta_width);
 
-        //print();
-
-        //LinkedList<PointSet*> *shapes_toCut;
-        LinkedList<PointSet*> *shapes_toProcess;
-        LinkedList<PointSet*> *shapes_final;
-
-        //shapes_toCut     = new LinkedList<PointSet*>(ptrPSetCompare);
-        shapes_toProcess = new LinkedList<PointSet*> (ptrPSetCompare);
-        shapes_final     = new LinkedList<PointSet*> (ptrPSetCompare);
+        auto shapes_toProcess = std::make_shared<LinkedList<std::shared_ptr<PointSet>>>(ptrPSetCompare);
+        auto shapes_final = std::make_shared<LinkedList<std::shared_ptr<PointSet>>>(ptrPSetCompare);
 
         mapShape->parent = NULL;
 
-        shapes_toProcess->push_back (mapShape);
+        shapes_toProcess->push_back(mapShape);
 
-        splitPolygons (shapes_toProcess, shapes_final, xrm, yrm, uid);
+        splitPolygons(shapes_toProcess, shapes_final, xrm, yrm, uid);
 
-
-        delete shapes_toProcess;
+        shapes_toProcess.reset();
 
         int nbp;
 
         if (shapes_final->size() > 0) {
-            LinkedList<LabelPosition*> *positions = new LinkedList<LabelPosition*> (ptrLPosCompare);
+            auto positions = std::make_shared<LinkedList<std::shared_ptr<LabelPosition>>>(ptrLPosCompare);
             int it;
 
-            double dlx, dly; // delta from label center and bottom-left corner
-            double alpha; // rotation for the label
+            double dlx, dly;// delta from label center and bottom-left corner
+            double alpha;   // rotation for the label
             double px, py;
             double dx;
             double dy;
             int bbid;
             double beta;
-            double diago = sqrt (xrm * xrm / 4.0 + yrm * yrm / 4);
+            double diago = sqrt(xrm * xrm / 4.0 + yrm * yrm / 4);
             double rx, ry;
-            CHullBox **boxes = new CHullBox*[shapes_final->size() ];
+            CHullBox **boxes = new CHullBox *[shapes_final->size()];
             j = 0;
 
             // Compute bounding box foreach finalShape
             while (shapes_final->size() > 0) {
-                PointSet *shape = shapes_final->pop_front();
+                auto shape = shapes_final->pop_front();
                 boxes[j] = shape->compute_chull_bbox ();
 
                 if (shape->parent)
-                    delete shape;
+                    shape.reset();
 
                 j++;
             }
@@ -563,7 +537,7 @@ namespace pal {
                         for (rx = px, i = 0; i < 2; rx = rx + 2 * xrm, i++) {
                             for (ry = py, j = 0; j < 2; ry = ry + 2 * yrm, j++) {
                                 // TODO should test with the polyone insteand of the bbox
-                                if (!isPointInPolygon (4, box->x, box->y, rx, ry)) {
+                                if (!isPointInPolygon(box->x, box->y, rx, ry)) {
                                     enoughPlace = false;
                                     break;
                                 }
@@ -610,15 +584,15 @@ namespace pal {
                     for (px = px0;px <= box->width;px += dx) {
                         for (py = py0;py <= box->length;py += dy) {
 
-                            rx = cos (box->alpha) * px + cos (box->alpha - M_PI / 2) * py;
-                            ry = sin (box->alpha) * px + sin (box->alpha - M_PI / 2) * py;
+                            rx = cos(box->alpha) * px + cos(box->alpha - M_PI / 2) * py;
+                            ry = sin(box->alpha) * px + sin(box->alpha - M_PI / 2) * py;
 
                             rx += box->x[0];
                             ry += box->y[0];
 
                             // Only accept candidate that center is in the polygon
-                            if (isPointInPolygon (mapShape->nbPoints, mapShape->x, mapShape->y, rx,  ry)) {
-                                positions->push_back (new LabelPosition (0, rx - dlx, ry - dly , xrm, yrm, alpha, 0.0001, this)); // Polygon
+                            if (isPointInPolygon(mapShape->x, mapShape->y, rx, ry)) {
+                                positions->push_back(new LabelPosition(0, rx - dlx, ry - dly, xrm, yrm, alpha, 0.0001, this));// Polygon
                             }
                         }
                     }
@@ -634,10 +608,10 @@ namespace pal {
 
             nbp = positions->size();
 
-            (*lPos) = new LabelPosition*[nbp];
+            lPos = std::vector<std::shared_ptr<LabelPosition>>(nbp);
             for (i = 0;i < nbp;i++) {
-                (*lPos) [i] = positions->pop_front();
-                (*lPos) [i]->id = i;
+                lPos[i] = positions->pop_front();
+                lPos[i]->id = i;
             }
 
             for (bbid = 0;bbid < j;bbid++) {
@@ -645,12 +619,12 @@ namespace pal {
             }
 
             delete[] boxes;
-            delete positions;
+            positions.reset();
         } else {
             nbp = 0;
         }
 
-        delete shapes_final;
+        shapes_final.reset();
 
 #ifdef _DEBUG_FULL_
         std::cout << "NbLabelPosition: " << nbp << std::endl;
@@ -658,17 +632,18 @@ namespace pal {
         return nbp;
     }
 
-    void Feature::print() {
+    void Feature::print()
+    {
         int i, j;
         std::cout << "Geometry id : " << uid << std::endl;
-        std::cout << "Type: " << type << std::endl;
-        if (x && y) {
-            for (i = 0;i < nbPoints;i++)
+        std::cout << "Type: " << static_cast<int>(type) << std::endl;
+        if (!x.empty() && !y.empty()) {
+            for (i = 0; i < getNbPoints(); i++)
                 std::cout << x[i] << ", " << y[i] << std::endl;
             std::cout << "Obstacle: " << nbSelfObs << std::endl;
-            for (i = 0;i < nbSelfObs;i++) {
+            for (i = 0; i < nbSelfObs; i++) {
                 std::cout << "  obs " << i << std::endl;
-                for (j = 0;j < selfObs[i]->nbPoints;j++) {
+                for (j = 0; j < selfObs[i]->getNbPoints(); j++) {
                     std::cout << selfObs[i]->x[j] << ";" << selfObs[i]->y[j] << std::endl;
                 }
             }
@@ -677,13 +652,15 @@ namespace pal {
         std::cout << std::endl;
     }
 
-    int Feature::setPosition (double scale, LabelPosition ***lPos,
-                              double bbox_min[2], double bbox_max[2],
-                              PointSet *mapShape, RTree<LabelPosition*, double, 2, double> *candidates
+    int Feature::setPosition(double scale, std::vector<std::shared_ptr<LabelPosition>> &lPos,
+                             double bbox_min[2], double bbox_max[2],
+                             PointSet *mapShape, RTree<LabelPosition *, double, 2, double> *candidates
 #ifdef _EXPORT_MAP_
-                              , std::ofstream &svgmap
+                             ,
+                             std::ofstream &svgmap
 #endif
-                             ) {
+    )
+    {
         int nbp = 0;
         int i;
         double bbox[4];
@@ -700,55 +677,55 @@ namespace pal {
         double delta = bbox_max[0] - bbox_min[0];
 
         switch (type) {
-        case GEOS_POINT:
-            fetchCoordinates ();
-            nbp = setPositionForPoint (x[0], y[0], scale, lPos, delta);
+            case PalGeometry::Type::Point:
+                fetchCoordinates();
+                nbp = setPositionForPoint(x[0], y[0], scale, lPos, delta);
 #ifdef _EXPORT_MAP_
-            toSVGPath (nbPoints, type, x, y, dpi , scale, layer->pal->map_unit,
-                       convert2pt (bbox_min[0], scale, dpi, layer->label_unit, delta),
-                       convert2pt (bbox_max[0], scale, dpi, layer->label_unit, delta),
-                       convert2pt (bbox_max[1], scale, dpi, layer->label_unit, delta),
-                       layer->name, uid, svgmap);
+                toSVGPath(nbPoints, type, x, y, dpi, scale, layer->pal->map_unit,
+                          convert2pt(bbox_min[0], scale, dpi, layer->label_unit, delta),
+                          convert2pt(bbox_max[0], scale, dpi, layer->label_unit, delta),
+                          convert2pt(bbox_max[1], scale, dpi, layer->label_unit, delta),
+                          layer->name, uid, svgmap);
 #endif
-            releaseCoordinates();
-            break;
-        case GEOS_LINESTRING:
-            nbp = setPositionForLine (scale, lPos, mapShape, delta);
-            break;
+                releaseCoordinates();
+                break;
+            case PalGeometry::Type::LineString:
+                nbp = setPositionForLine(scale, lPos, mapShape, delta);
+                break;
 
-        case GEOS_POLYGON:
-            switch (layer->getArrangement()) {
-            case P_POINT:
-                double cx, cy;
-                mapShape->getCentroid (cx, cy);
-                nbp = setPositionForPoint (cx, cy, scale, lPos, delta);
-                break;
-            case P_LINE:
-            case P_LINE_AROUND:
-                nbp = setPositionForLine (scale, lPos, mapShape, delta);
-                break;
-            default:
-                nbp = setPositionForPolygon (scale, lPos, mapShape, delta);
-                break;
-            }
+            case PalGeometry::Type::Polygon:
+                switch (layer->getArrangement()) {
+                    case P_POINT:
+                        double cx, cy;
+                        mapShape->getCentroid(cx, cy);
+                        nbp = setPositionForPoint(cx, cy, scale, lPos, delta);
+                        break;
+                    case P_LINE:
+                    case P_LINE_AROUND:
+                        nbp = setPositionForLine(scale, lPos, mapShape, delta);
+                        break;
+                    default:
+                        nbp = setPositionForPolygon(scale, lPos, mapShape, delta);
+                        break;
+                }
         }
 
         int rnbp = nbp;
 
         // purge candidates that are outside the bbox
         for (i = 0;i < nbp;i++) {
-            if (! (*lPos) [i]->isIn (bbox)) {
+            if (!lPos[i]->isIn(bbox)) {
                 rnbp--;
-                (*lPos) [i]->cost = DBL_MAX;
-            } else { // this one is OK
-                (*lPos) [i]->insertIntoIndex (candidates);
+                lPos[i]->cost = DBL_MAX;
+            } else {// this one is OK
+                lPos[i]->insertIntoIndex(candidates);
             }
         }
 
-        sort ( (void**) (*lPos), nbp, costGrow);
+        sortVector(lPos, costGrow);
 
         for (i = rnbp;i < nbp;i++) {
-            delete (*lPos) [i];
+            lPos[i].reset();
         }
 
         return rnbp;
@@ -758,13 +735,13 @@ namespace pal {
     void Feature::fetchCoordinates() {
         accessMutex->lock();
         layer->pal->tmpTime -= clock();
-        if (!x && !y) {
+        if (x.empty() && y.empty()) {
             //std::cout << "fetch feat " << layer->name << "/" << uid << std::endl;
             the_geom = userGeom->getGeosGeometry();
-            LinkedList<Feat*> *feats = splitGeom (the_geom, this->uid);
+            auto feats = splitGeom(the_geom, this->uid);
             int id = 0;
             while (feats->size() > 0) {
-                Feat *f = feats->pop_front();
+                auto f = feats->pop_front();
                 if (id == this->part) {
                     x = f->x;
                     y = f->y;
