@@ -30,8 +30,12 @@ TEST_CASE("Geos Geometries", "Creation of Features from Geos")
     }
 }
 
-void testSquares (pal::Pal *pal, pal::Layer *layer, int num)
+void testSquares (pal::Pal *pal, pal::Layer *, int num)
 {
+    pal::Layer * layer = pal->addLayer ("main", -1, -1, pal::P_FREE,
+                                       pal::METER, 0.5, false, true, true);
+
+
     const double dx = 10;
     const double dy = 10;
     const double lx = 2.5;
@@ -45,13 +49,11 @@ void testSquares (pal::Pal *pal, pal::Layer *layer, int num)
             id<< "G:" << (y*num+x);
             wkt << "POLYGON((" ;
             wkt << (x*dx)<< " " << (y*dy);
-            wkt << "," << ((x+1)*dx) <<" " << (y*dy);
-            wkt << "," << ((x+1)*dx) <<" " << ((y+1)*dy);
-            wkt << "," << (x  *dx) <<" " << ((y+1)*dy);
+            wkt << "," << ((x+1)*dx-0.5) <<" " << (y*dy);
+            wkt << "," << ((x+1)*dx-0.5) <<" " << ((y+1)*dy-0.5);
+            wkt << "," << (x  *dx) <<" " << ((y+1)*dy-0.5);
             wkt << "," << (x*dx) <<" " << (y*dy);
             wkt << "))";
-
-            std::cout << wkt.str() << "\n";
 
             auto geom = new Geom(wkt.str().c_str());
             layer->registerFeature(id.str().c_str(), geom, lx, ly);
@@ -77,26 +79,23 @@ void testSquares (pal::Pal *pal, pal::Layer *layer, int num)
     delete stats;
 
     delete labels;
+
+    pal->removeLayer(layer);
 }
 
 TEST_CASE("Geos Labelling", "Geos labelling")
 {
     pal::Pal pal;
+    pal.setSearch(pal::CHAIN);
+    pal.setMapUnit(pal::METER);
 
-    pal::Layer * layer = pal.addLayer ("main", -1, -1, pal::P_FREE,
-                                       pal::PIXEL, 1, false, true, true);
-
-
-    testSquares(&pal, layer, 3);
-    /*
     BENCHMARK("Test 2x2 labelling"){
-        return testSquares(&pal, layer, 2);
+        return testSquares(&pal, nullptr, 2);
     };
     BENCHMARK("Test 5x5 labelling"){
-        return testSquares(&pal, layer, 5);
+        return testSquares(&pal, nullptr, 5);
     };
     BENCHMARK("Test 10x10 labelling"){
-        return testSquares(&pal, layer, 10);
+        return testSquares(&pal, nullptr, 10);
     };
-*/
 }
