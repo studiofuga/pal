@@ -9,5 +9,7 @@ include(CPack)
 include(GNUInstallDirs)
 
 add_subdirectory(src/pal)
+add_subdirectory(tests)
+
 add_subdirectory(paltool)
 
