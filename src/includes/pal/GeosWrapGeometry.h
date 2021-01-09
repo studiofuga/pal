@@ -27,29 +27,56 @@
 #define LIBPAL_GEOSWRAPGEOMETRY_H
 
 #include "pal/label.h"
+#include "pal/palgeometry.h"
 
-#include <geos_c.h>
 #include <list>
+
+struct GEOSGeom_t;
+typedef struct GEOSGeom_t GEOSGeometry;
 
 namespace pal {
 
-class GeosWrapGeometry {
+class GeosWrapGeometry : public PalGeometry {
+    struct Impl;
+
+    Impl *p = nullptr;
+
+private:
+    explicit GeosWrapGeometry(GEOSGeometry *);
+
 public:
-    virtual ~GeosWrapGeometry() {}
+    explicit GeosWrapGeometry(const char *wkb);
+
+    GeosWrapGeometry(GeosWrapGeometry &&) = default;
+    GeosWrapGeometry(GeosWrapGeometry const &) = delete;
+
+    GeosWrapGeometry &operator=(GeosWrapGeometry &&) = default;
+    GeosWrapGeometry &operator=(GeosWrapGeometry const &) = delete;
+
+    virtual ~GeosWrapGeometry();
 
     /**
-     * \brief get the GEOSGeometry of the feature
+     * \brief get the geometry in WKB hexa format
      * This method is called by Pal each time it needs a geom's coordinates
-     *
-     * @return GEOSGeometry * a pointer the the geos geom
+     * \return WKB Hex buffer
      */
-    virtual GEOSGeometry *getGeosGeometry() = 0;
+    GEOSGeometry *getGeosGeometry();
 
     /**
      * \brief Called by Pal when it doesn't need the coordinates anymore
-     * @param the_geom is the geoms geom  from PalGeometry::getfeomGeometry()
+     * @param the_geom is the geos geom  from PalGeometry::getGeosGeometry()
      */
-    virtual void releaseGeosGeometry(GEOSGeometry *the_geom) = 0;
+    void releaseGeosGeometry();
+    Type type() const override;
+    std::vector<PalGeometry *> getSimpleGeometries() const override;
+    size_t getNumPoints() const override;
+    double getCoordX(size_t n) const override;
+    double getCoordY(size_t n) const override;
+    void getCoordsX(double *xarray) const override;
+    void getCoordsY(double *yarray) const override;
+    PalGeometry *getExteriorRing() const override;
+    size_t numInternalRings() const override;
+    PalGeometry *getInternalRing(size_t n) const override;
 };
 
 }

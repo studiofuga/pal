@@ -520,7 +520,7 @@ namespace pal {
 
         }
         delete fCoordQueue;
-        //delete the_geom;
+        //delete geosGeom;
         return finalQueue;
     }
 
