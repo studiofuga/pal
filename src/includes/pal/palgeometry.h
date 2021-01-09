@@ -27,57 +27,103 @@
 #ifndef _PAL_GEOMETRY_H
 #define _PAL_GEOMETRY_H
 
-#include <list>
-#include <pal/label.h>
-#include <geos_c.h>
+#include <vector>
 
 namespace pal {
 
-    /**
-     * \brief Interface that allow Pal to acces user's geometries
-     */
-    class PalGeometry {
-    public:
-        /*
-         * \brief get the geometry in WKB hexa format
-         * This method is called by Pal each time it needs a geom's coordinates
-         *
-         * @return WKB Hex buffer
-         */
-        //virtual char * getWkbHexBuffer() = 0;
-
-        /**
-         * \brief get the GEOSGeometry of the feature
-         * This method is called by Pal each time it needs a geom's coordinates
-         *
-         * @return GEOSGeometry * a pointer the the geos geom
-         */
-        virtual GEOSGeometry* getGeosGeometry() = 0;
-
-
-        /**
-         * \brief Called by Pal when it doesn't need the coordinates anymore
-         * @param the_geom is the geoms geom  from PalGeometry::getfeomGeometry()
-         */
-        virtual void releaseGeosGeometry (GEOSGeometry *the_geom) = 0;
-
-
-        /*
-         * \brief Called by Pal when it doesn't need the coordinates anymore
-         * @param wkbBuffer is the WkbBuffer from PalGeometry::getWkbHexBuffer()
-         */
-        //virtual void releaseWkbHexBuffer(char *wkbBuffer) = 0;
-
-        /*
-         * \brief Give back a label to display
-         * Pal call this method when label will no move anymore.
-         *
-         * @param label the label to disploy
-         */
-        //virtual void addLabel(Label *label) = 0;
-
-        virtual ~PalGeometry() {}
+/**
+ * \brief Interface that allow Pal to acces user's geometries
+ */
+class PalGeometry {
+public:
+    enum class Type {
+        None = 0,
+        Unknown,
+        Point,
+        LineString,
+        LineArray,
+        Polygon,
+        MultiPoint,
+        MultiLineString,
+        MultiPolygon,
+        GeometryCollection
     };
+
+    virtual ~PalGeometry() = default;
+
+    /**
+     * @brief Returns the exact type of the geometry (or geometries) contained in the object
+     * @return a Type enum for the type.
+     */
+    virtual Type type() const  = 0;
+
+    /**
+     * @brief Returns the collection of simple geometries contained in the geometry. In case of "Simple"
+     * geometry (Poin, Line, Polygon) returns a vector with just one element, otherwise (for Multi*),
+     * returns all the Point/LineString/Polygon.
+     * @return
+     */
+    virtual std::vector<PalGeometry*> getSimpleGeometries() const = 0;
+
+    /**
+     * @brief Returns the number of coordinate pairs of the geometry. It's 1 for Point, 2 for Line and so on
+     * @return
+     */
+    virtual size_t getNumPoints() const = 0;
+
+    /**
+     * @brief Returns the X coordinate of the nth point
+     * @param n point seq
+     * @return
+     */
+    virtual double getCoordX(size_t n) const = 0;
+
+    /**
+     * @brief Returns the Y coordinate of the nth point
+     * @param n point seq
+     * @return
+     */
+    virtual double getCoordY(size_t n) const = 0;
+
+    /**
+     * @brief Copy all the X coords to the pointed array. the array must be already allocated
+     * and should have enouth space to fit all the coords. See getNumPoints()
+     * @param xarray
+     */
+    virtual void getCoordsX (double *xarray) const = 0;
+
+    /**
+     * @brief Copy all the Y coords to the pointed array. the array must be already allocated
+     * and should have enouth space to fit all the coords. See getNumPoints()
+     * @param yarray
+     */
+    virtual void getCoordsY (double *yarray) const = 0;
+
+    /**
+     * @brief Returns the pointer to the exterior ring Polygon Geometry.
+     * The returned object pointer is owned by the object itself, so it must not be freed or
+     * modified, but the life cycle is managed by the object itself.
+     * @return A pointer to the exterior ring, if any. nullptr if not a polygon.
+     */
+    virtual PalGeometry *getExteriorRing() const = 0;
+
+    /**
+     * @brief Returns the number of internal rings of the polygon geometry
+     * @return the number of internal rings. if any. 0 if there are no internal rings or if geometry is not
+     * a polygon
+     */
+    virtual size_t numInternalRings() const = 0;
+
+    /**
+     * @brief Returns the pointer to the nth internal ring Polygon Geometry.
+     * The returned object pointer is owned by the object itself, so it must not be freed or
+     * modified, but the life cycle is managed by the object itself.
+     * @return A pointer to the nth internal ring, if any. nullptr if not a polygon.
+     * @throws std::out_of_range is n is greater or equal to numInternalRings().
+     */
+    virtual PalGeometry *getInternalRing(size_t n) const = 0;
+
+};
 
 } // end namespace pal
 

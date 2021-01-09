@@ -444,7 +444,7 @@ namespace pal {
     }
 
     void LabelPosition::PolygonCostCalculator::update (PointSet *pset) {
-        if (pset->getType() == GEOS_POINT){
+        if (pset->getType() == PalGeometry::Type::Point){
             updatePoint(pset);
         }
         else{
@@ -488,7 +488,7 @@ namespace pal {
 
     double LabelPosition::PolygonCostCalculator::updateLinePoly (PointSet *pset) {
         int i, j, k;
-        int nbP = (pset->getType() == GEOS_POLYGON ? pset->getNbPoints() : pset->getNbPoints()-1);
+        int nbP = (pset->getType() == PalGeometry::Type::Polygon ? pset->getNbPoints() : pset->getNbPoints()-1);
         double min_dist = DBL_MAX;
 
         for (i = 0;i < nbP;i++) {

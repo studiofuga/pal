@@ -282,10 +282,7 @@ void Layer::registerFeature (const char *geom_id, PalGeometry *userGeom, double 
             return;
         }
 
-        /* Split MULTI GEOM and Collection in simple geometries*/
-        GEOSGeometry *the_geom = userGeom->getGeosGeometry();
-
-        LinkedList<Feat*> *finalQueue = splitGeom (the_geom, geom_id);
+        LinkedList<Feat*> *finalQueue = splitGeom (userGeom, geom_id);
 
         int nGeom = finalQueue->size();
         int part = 0;
@@ -300,16 +297,16 @@ void Layer::registerFeature (const char *geom_id, PalGeometry *userGeom, double 
             Feature *ft;
 
             switch (f->type) {
-            case GEOS_POINT:
-            case GEOS_LINESTRING:
-            case GEOS_POLYGON:
+            case PalGeometry::Type::Point:
+            case PalGeometry::Type::LineString:
+            case PalGeometry::Type::Polygon:
                 //case geos::geom::GEOS_POINT:
                 //case geos::geom::GEOS_LINESTRING:
                 //case geos::geom::GEOS_POLYGON:
 
                // ignore invalid geometries
-               if ( (f->type == GEOS_LINESTRING && f->nbPoints < 2) ||
-                    (f->type == GEOS_POLYGON && f->nbPoints < 3) )
+               if ( (f->type == PalGeometry::Type::LineString && f->nbPoints < 2) ||
+                    (f->type == PalGeometry::Type::Polygon && f->nbPoints < 3) )
                    continue;
 
 #ifdef _DEBUG_FULL_
@@ -363,8 +360,6 @@ void Layer::registerFeature (const char *geom_id, PalGeometry *userGeom, double 
             part++;
         }
         delete finalQueue;
-
-        userGeom->releaseGeosGeometry (the_geom);
     }
     modMutex->unlock();
 }

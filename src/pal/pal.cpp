@@ -252,8 +252,8 @@ namespace pal {
 
                 LinkedList<Feats*> *feats = new LinkedList<Feats*> (ptrFeatsCompare);
 
-                if ( (ft_ptr->type == GEOS_LINESTRING)
-                        || ft_ptr->type == GEOS_POLYGON) {
+                if ( (ft_ptr->type == PalGeometry::Type::LineString)
+                        || ft_ptr->type == PalGeometry::Type::Polygon) {
 
                     double bbx[4], bby[4];
 
@@ -279,7 +279,7 @@ namespace pal {
                         shapes->push_back (shape);
                     } else {
                         // feature isn't completly in the math
-                        if (ft_ptr->type == GEOS_LINESTRING)
+                        if (ft_ptr->type == PalGeometry::Type::LineString)
                             PointSet::reduceLine (shape, shapes, bbx, bby);
                         else {
                             PointSet::reducePolygon (shape, shapes, bbx, bby);
@@ -438,7 +438,7 @@ namespace pal {
 
         switch (feat->type) {
             //case geos::geom::GEOS_POINT:
-        case GEOS_POINT:
+        case PalGeometry::Type::Point:
 
 #ifdef _DEBUG_FULL
             std::cout << "    POINT" << std::endl;
@@ -455,8 +455,7 @@ namespace pal {
 
             break;
 
-            //case geos::geom::GEOS_LINESTRING:
-        case GEOS_LINESTRING:
+        case PalGeometry::Type::LineString:
 #ifdef _DEBUG_FULL
             std::cout << "    LINE" << std::endl;
 #endif
@@ -482,8 +481,7 @@ namespace pal {
                 }
             }
             break;
-            //case geos::geom::GEOS_POLYGON:
-        case GEOS_POLYGON:
+        case PalGeometry::Type::Polygon:
 #ifdef _DEBUG_FULL
             std::cout << "    POLY" << std::endl;
 #endif
@@ -752,13 +750,13 @@ namespace pal {
             prob->inactiveCost[i] = pow (2, 10 - 10 * feat->priority);
 
             switch (feat->feature->type) {
-            case GEOS_POINT:
+            case PalGeometry::Type::Point:
                 max_p = point_p;
                 break;
-            case GEOS_LINESTRING:
+            case PalGeometry::Type::LineString:
                 max_p = line_p;
                 break;
-            case GEOS_POLYGON:
+            case PalGeometry::Type::Polygon:
                 max_p = poly_p;
                 break;
             }
@@ -792,7 +790,7 @@ namespace pal {
 #endif
 
             // Sets costs for candidates of polygon
-            if (feat->feature->type == GEOS_POLYGON && (feat->feature->layer->arrangement == P_FREE || feat->feature->layer->arrangement == P_HORIZ))
+            if (feat->feature->type == PalGeometry::Type::Polygon && (feat->feature->layer->arrangement == P_FREE || feat->feature->layer->arrangement == P_HORIZ))
                 LabelPosition::setCost (stop, feat->lPos, max_p, obstacles, bbx, bby);
 
 #ifdef _DEBUG_FULL_

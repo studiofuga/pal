@@ -9,7 +9,8 @@ set(SOURCES
         pointset.cpp
         priorityqueue.cpp
         problem.cpp
-        util.cpp)
+        util.cpp
+        GeosWrapGeometry.cpp )
 
 set(HEADERS
         rtree.hpp
@@ -32,6 +33,7 @@ set(PUB_HEADERS
         ${CMAKE_SOURCE_DIR}/src/includes/pal/palexception.h
         ${CMAKE_SOURCE_DIR}/src/includes/pal/palgeometry.h
         ${CMAKE_SOURCE_DIR}/src/includes/pal/palstat.h
+        ${CMAKE_SOURCE_DIR}/src/includes/pal/GeosWrapGeometry.h
         )
 
 add_library(pal SHARED ${SOURCES} ${HEADERS} ${PUB_HEADERS})

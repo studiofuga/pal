@@ -24,40 +24,22 @@
  *
  */
 
-#include <stddef.h>
-#include <geos_c.h>
-
-#include <sstream>
-
-#include <iostream>
-#include <cfloat>
-//#include <cfloat>
-#include <cstdarg>
-#include <ctime>
-
-#include <pal/layer.h>
+#include "pal/layer.h"
 
 #include "internalexception.h"
+
 #include "util.h"
 #include "labelposition.h"
 #include "feature.h"
 #include "geomfunction.h"
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include <cstddef>
+#include <sstream>
+#include <iostream>
 
-#ifndef M_PI_2
-#define M_PI_2 1.57079632679489661923
-#endif
-
-#ifndef M_SQRT_2
-#define M_SQRT_2 0.707106781186547524401
-#endif
-
-#ifndef M_SQRT2
-#define M_SQRT2 1.41421356237309504880
-#endif
+#include <cfloat>
+#include <cstdarg>
+#include <ctime>
 
 namespace pal {
 
@@ -184,43 +166,44 @@ namespace pal {
     }
 
 
-//inline bool ptrGeomEq (const geos::geom::Geometry *l, const geos::geom::Geometry *r){
-    inline bool ptrGeomEq (const GEOSGeometry *l, const GEOSGeometry *r) {
+    inline bool ptrGeomEq (const PalGeometry *l, const PalGeometry *r) {
         return l == r;
     }
 
-//LinkedList<const geos::geom::Geometry*> * unmulti (geos::geom::Geometry *the_geom){
-    LinkedList<const GEOSGeometry*> * unmulti (GEOSGeometry *the_geom) {
-
-        //LinkedList<const geos::geom::Geometry*> *queue = new  LinkedList<const geos::geom::Geometry*>(ptrGeomEq);
-        //LinkedList<const geos::geom::Geometry*> *final_queue = new  LinkedList<const geos::geom::Geometry*>(ptrGeomEq);
-        LinkedList<const GEOSGeometry*> *queue = new  LinkedList<const GEOSGeometry*> (ptrGeomEq);
-        LinkedList<const GEOSGeometry*> *final_queue = new  LinkedList<const GEOSGeometry*> (ptrGeomEq);
-
-        //const geos::geom::Geometry *geom;
-        const GEOSGeometry *geom;
+    auto unmulti (PalGeometry *the_geom) {
+        auto queue = new  LinkedList<const PalGeometry*> (ptrGeomEq);
+        auto final_queue = new  LinkedList<const PalGeometry*> (ptrGeomEq);
 
         queue->push_back (the_geom);
         int nGeom;
         int i;
 
         while (queue->size() > 0) {
-            geom = queue->pop_front();
-            switch (GEOSGeomTypeId (geom)) {
-                //case geos::geom::GEOS_MULTIPOINT:
-                //case geos::geom::GEOS_MULTILINESTRING:
-                //case geos::geom::GEOS_MULTIPOLYGON:
-            case GEOS_MULTIPOINT:
-            case GEOS_MULTILINESTRING:
-            case GEOS_MULTIPOLYGON:
+            auto geom = queue->pop_front();
+            switch (geom->type()) {
+            case PalGeometry::Type::MultiPoint:
+            case PalGeometry::Type::MultiLineString:
+            case PalGeometry::Type::MultiPolygon: {
+                auto simplifiedGeometries = geom->getSimpleGeometries();
+                for (auto x : simplifiedGeometries) {
+                    queue->push_back(x);
+                }
+/*
+                std::copy(simplifiedGeometries.begin(), simplifiedGeometries.end(),
+                          std::back_inserter(queue));
+*/
+            }
+/*
+
                 nGeom = GEOSGetNumGeometries (geom);
                 for (i = 0;i < nGeom;i++) {
                     queue->push_back (GEOSGetGeometryN (geom, i));
                 }
+*/
                 break;
-            case GEOS_POINT:
-            case GEOS_LINESTRING:
-            case GEOS_POLYGON:
+            case PalGeometry::Type::Point:
+            case PalGeometry::Type::LineString:
+            case PalGeometry::Type::Polygon:
                 final_queue->push_back (geom);
                 break;
             default:
@@ -232,8 +215,6 @@ namespace pal {
         return final_queue;
     }
 
-
-
     /*
      * \brief read coordinates from a GEOS geom
      */
@@ -242,28 +223,23 @@ namespace pal {
 
         double phi, lambda;
 
-        //Projection *proj = pal->proj;
+        const auto geom = f->geom;
+        const PalGeometry *r_geom;
 
-        const GEOSCoordSequence *coordSeq;
-
-        const GEOSGeometry *geom = f->geom;
-        const GEOSGeometry *r_geom;
-        const GEOSGeometry *interior;
-
-        switch (GEOSGeomTypeId (geom)) {
-        case GEOS_POINT:
-        case GEOS_LINESTRING:
-        case GEOS_POLYGON:
-            f->type = GEOSGeomTypeId (geom);
+        switch (geom->type()) {
+        case PalGeometry::Type::Point:
+        case PalGeometry::Type::LineString:
+        case PalGeometry::Type::Polygon:
+            f->type = geom->type();
             break;
         default:
-            std::cout << "Wrong geometry !!" << std::endl;
+            throw std::logic_error("Wrong geometry !!");
         }
 
-        if (f->type == GEOS_POLYGON) {
-            r_geom = GEOSGetExteriorRing (geom);
-            if (GEOSGetNumInteriorRings (geom) > 0) {
-                f->nbHoles = GEOSGetNumInteriorRings (geom);
+        if (f->type == PalGeometry::Type::Polygon) {
+            r_geom = geom->getExteriorRing();
+            f->nbHoles = geom->numInternalRings();
+            if (f->nbHoles > 0) {
                 f->holes = new PointSet*[f->nbHoles];
 #ifdef _DEBUG_FULL_
                 std::cout << f->nbHoles << " obstacles !" << std::endl;
@@ -272,8 +248,8 @@ namespace pal {
                     f->holes[i] = new PointSet();
                     f->holes[i]->holeOf = NULL;
 
-                    interior =  GEOSGetInteriorRingN (geom, i);
-                    f->holes[i]->nbPoints = GEOSGetNumCoordinates (interior);
+                    auto interior =  geom->getInternalRing(i);
+                    f->holes[i]->nbPoints = interior->getNumPoints();
                     f->holes[i]->x = new double[f->holes[i]->nbPoints];
                     f->holes[i]->y = new double[f->holes[i]->nbPoints];
 
@@ -282,11 +258,9 @@ namespace pal {
                     f->holes[i]->ymin = DBL_MAX;
                     f->holes[i]->ymax = -DBL_MAX;
 
-                    coordSeq = GEOSGeom_getCoordSeq (interior);
-
                     for (j = 0;j < f->holes[i]->nbPoints;j++) {
-                        GEOSCoordSeq_getX (coordSeq, j, &f->holes[i]->x[j]);
-                        GEOSCoordSeq_getY (coordSeq, j, &f->holes[i]->y[j]);
+                        f->holes[i]->x[j] = interior->getCoordX(j);
+                        f->holes[i]->y[j] = interior->getCoordY(j);
 
                         f->holes[i]->xmax = f->holes[i]->x[j] > f->holes[i]->xmax ? f->holes[i]->x[j] : f->holes[i]->xmax;
                         f->holes[i]->xmin = f->holes[i]->x[j] < f->holes[i]->xmin ? f->holes[i]->x[j] : f->holes[i]->xmin;
@@ -304,15 +278,14 @@ namespace pal {
         }
 
 
-        f->nbPoints = GEOSGetNumCoordinates (r_geom);
-        coordSeq = GEOSGeom_getCoordSeq (r_geom);
+        f->nbPoints = r_geom->getNumPoints();
+//        coordSeq = GEOSGeom_getCoordSeq (r_geom);
 
         double xmin = DBL_MAX;
         double xmax = -DBL_MAX;
         double ymin = DBL_MAX;
         double ymax = -DBL_MAX;
 
-        //std::cout << "Label: <" << label << ">    nbPoints : " << nbPoints << std::endl;
         f->x = new double[f->nbPoints];
         f->y = new double[f->nbPoints];
 
@@ -323,8 +296,8 @@ namespace pal {
         std::cout << "ExtractXY (" << f->nbPoints << " points)" << std::endl;
 #endif
         for (i = 0;i < f->nbPoints;i++) {
-            GEOSCoordSeq_getX (coordSeq, i, &f->x[i]);
-            GEOSCoordSeq_getY (coordSeq, i, &f->y[i]);
+            f->x[i] = r_geom->getCoordX(i);
+            f->y[i] = r_geom->getCoordY(i);
 
             xmax = f->x[i] > xmax ? f->x[i] : xmax;
             xmin = f->x[i] < xmin ? f->x[i] : xmin;
@@ -392,15 +365,13 @@ namespace pal {
 
 
 
-    LinkedList<Feat*> * splitGeom (GEOSGeometry *the_geom, const char *geom_id) {
+    LinkedList<Feat*> * splitGeom (PalGeometry *the_geom, const char *geom_id) {
         LinkedList <Feat*> *fCoordQueue = new LinkedList<Feat*> (ptrFeatCompare);
         LinkedList <Feat*> *finalQueue = new LinkedList<Feat*> (ptrFeatCompare);
 
-        LinkedList <const GEOSGeometry*> *simpleGeometries = unmulti (the_geom);
+        auto simpleGeometries = unmulti (the_geom);
 
         int i, j, k, l, j2, l2;
-
-        const GEOSGeometry *geom;
 
         int pt_a = -1;
         int pt_b = -1;
@@ -410,28 +381,27 @@ namespace pal {
         Feat *f;
 
         while (simpleGeometries->size() > 0) {
-            geom = simpleGeometries->pop_front();
+            const auto geom = simpleGeometries->pop_front();
             //std::cout << "    split->typeid : " << geom->getGeometryTypeId() << std::endl;
-            switch (GEOSGeomTypeId (geom)) {
-            case GEOS_MULTIPOINT:
-            case GEOS_MULTILINESTRING:
-            case GEOS_MULTIPOLYGON:
-                std::cerr << "MUTLI geometry should never occurs here" << std::endl;
-                break;
-            case GEOS_POINT:
-            case GEOS_LINESTRING:
+            switch (geom->type()) {
+                case PalGeometry::Type::MultiPoint:
+            case PalGeometry::Type::MultiLineString:
+            case PalGeometry::Type::MultiPolygon:
+                throw std::logic_error("MUTLI geometry should never occurs here");
+            case PalGeometry::Type::Point:
+            case PalGeometry::Type::LineString:
                 f = new Feat();
                 f->geom = geom;
                 f->id = geom_id;
-                f->type = GEOSGeomTypeId (geom);
+                f->type = geom->type();
                 extractXYCoord (f);
                 fCoordQueue->push_back (f);
                 break;
-            case GEOS_POLYGON:
+            case PalGeometry::Type::Polygon:
                 f = new Feat();
                 f->geom = geom;
                 f->id = geom_id;
-                f->type = GEOS_POLYGON;
+                f->type = PalGeometry::Type::Polygon;
                 extractXYCoord (f);
 
                 // BUGFIX #8 by maxence -- 11/03/2008
@@ -482,7 +452,7 @@ namespace pal {
         while (fCoordQueue->size() > 0) {
             f = fCoordQueue->pop_front();
 
-            if (f->type == GEOS_POLYGON) {
+            if (f->type == PalGeometry::Type::Polygon) {
 #ifdef _DEBUG_FULL_
                 std::cout << "New feature coordinates:" << std::endl;
                 for (i = 0;i < f->nbPoints;i++)

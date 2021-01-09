@@ -52,9 +52,9 @@ namespace pal {
      * \brief For translating feature from GEOS to Pal
      */
     typedef struct Feat {
-        const GEOSGeometry *geom;
+        const PalGeometry *geom;
         const char *id;
-        int type;
+        PalGeometry::Type type = PalGeometry::Type::None;
 
         int nbPoints;
         double *x;
@@ -71,7 +71,7 @@ namespace pal {
     /**
      * \brief split GEOS geom (multilinestring, multipoint, multipolygon) => (point, linestring, polygone)
      */
-    LinkedList<Feat*> * splitGeom (GEOSGeometry *the_geom, const char *geom_id);
+    LinkedList<Feat*> * splitGeom (PalGeometry *the_geom, const char *geom_id);
 
     typedef struct _feats {
         Feature *feature;

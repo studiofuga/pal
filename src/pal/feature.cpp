@@ -661,7 +661,7 @@ namespace pal {
     void Feature::print() {
         int i, j;
         std::cout << "Geometry id : " << uid << std::endl;
-        std::cout << "Type: " << type << std::endl;
+        std::cout << "Type: " << (int)type << std::endl;
         if (x && y) {
             for (i = 0;i < nbPoints;i++)
                 std::cout << x[i] << ", " << y[i] << std::endl;
@@ -700,7 +700,7 @@ namespace pal {
         double delta = bbox_max[0] - bbox_min[0];
 
         switch (type) {
-        case GEOS_POINT:
+        case PalGeometry::Type::Point:
             fetchCoordinates ();
             nbp = setPositionForPoint (x[0], y[0], scale, lPos, delta);
 #ifdef _EXPORT_MAP_
@@ -712,11 +712,11 @@ namespace pal {
 #endif
             releaseCoordinates();
             break;
-        case GEOS_LINESTRING:
+        case PalGeometry::Type::LineString:
             nbp = setPositionForLine (scale, lPos, mapShape, delta);
             break;
 
-        case GEOS_POLYGON:
+        case PalGeometry::Type::Polygon:
             switch (layer->getArrangement()) {
             case P_POINT:
                 double cx, cy;
@@ -760,8 +760,7 @@ namespace pal {
         layer->pal->tmpTime -= clock();
         if (!x && !y) {
             //std::cout << "fetch feat " << layer->name << "/" << uid << std::endl;
-            the_geom = userGeom->getGeosGeometry();
-            LinkedList<Feat*> *feats = splitGeom (the_geom, this->uid);
+            LinkedList<Feat*> *feats = splitGeom (userGeom, this->uid);
             int id = 0;
             while (feats->size() > 0) {
                 Feat *f = feats->pop_front();
@@ -824,7 +823,6 @@ namespace pal {
         //std::cout << "release (" << currentAccess << ")" << std::endl;
         if (x && y && currentAccess == 1) {
             deleteCoord();
-            userGeom->releaseGeosGeometry (the_geom);
         }
         currentAccess--;
         accessMutex->unlock();

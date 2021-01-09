@@ -27,14 +27,15 @@
 #ifndef _POINTSET_H
 #define _POINTSET_H
 
-#include <cfloat>
-
-#include <cmath>
-#include <stddef.h>
-#include <geos_c.h>
-
+#include "pal/palgeometry.h"
 #include "rtree.hpp"
 #include "linkedlist.hpp"
+
+#include <geos_c.h>
+
+#include <cfloat>
+#include <cmath>
+#include <cstddef>
 
 namespace pal {
 
@@ -43,6 +44,7 @@ namespace pal {
     class Feature;
     class Projection;
     class LabelPosition;
+    class PalGeometry;
 
     typedef struct _cross {
         int pt;
@@ -90,7 +92,7 @@ namespace pal {
         friend bool obstacleCallback (PointSet *feat, void *ctx);
         friend bool extractFeatCallback (Feature*, void*);
         friend void extractXYCoord (Feat *f);
-        friend LinkedList<Feat*> * splitGeom (GEOSGeometry *the_geom, const char *geom_id);
+        friend LinkedList<Feat*> * splitGeom (PalGeometry *the_geom, const char *geom_id);
         friend void releaseAllInIndex (RTree<PointSet*, double, 2, double> *obstacles);
         friend bool releaseCallback (PointSet *pset, void *ctx);
         friend bool filteringCallback (PointSet*, void*);
@@ -103,7 +105,7 @@ namespace pal {
         int *cHull;
         int cHullSize;
 
-        int type;
+        PalGeometry::Type type;
 
         //PointSet *parent;
 
@@ -214,7 +216,7 @@ namespace pal {
             return ymax;
         }
 
-        inline int getType(){
+        inline auto getType(){
             return type;
         }
 

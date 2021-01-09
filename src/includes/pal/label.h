@@ -27,6 +27,8 @@
 #ifndef _LABEL_H
 #define _LABEL_H
 
+#include <cstddef>
+
 namespace pal {
 
     class LabelPosition;

@@ -48,7 +48,7 @@ namespace pal {
         y = NULL;
         status = NULL;
         cHull = NULL;
-        type = -1;
+        type = PalGeometry::Type::Unknown;
     }
 
     PointSet::PointSet (int nbPoints, double *x, double *y){
@@ -61,7 +61,7 @@ namespace pal {
            this->x[i] = x[i];
            this->y[i] = y[i];
         }
-        type = GEOS_POLYGON;
+        type = PalGeometry::Type::Polygon;
         status = NULL;
         cHull = NULL;
     }
@@ -78,7 +78,7 @@ namespace pal {
         parent = NULL;
         holeOf = NULL;
 
-        type = GEOS_POINT;
+        type = PalGeometry::Type::Point;
     }
 
     PointSet::PointSet (PointSet &ps) {
@@ -159,7 +159,7 @@ namespace pal {
             newShape->x = new double[newShape->nbPoints];
             newShape->y = new double[newShape->nbPoints];
             newShape->status = new int[newShape->nbPoints];
-            newShape->type = GEOS_POLYGON;
+            newShape->type = PalGeometry::Type::Polygon;
             k = 0;
 
 #ifdef _DEBUG_FULL_
@@ -331,7 +331,7 @@ namespace pal {
                     stopY = crossing->y;
                     PointSet *new_line = new PointSet();
                     new_line->nbPoints = stop - start + 3;
-                    new_line->type = GEOS_LINESTRING;
+                    new_line->type = PalGeometry::Type::LineString;
                     new_line->x = new double [new_line->nbPoints];
                     new_line->y = new double [new_line->nbPoints];
 
@@ -374,7 +374,7 @@ namespace pal {
 
             if (!seg_complete) {
                 PointSet * new_line = new PointSet();
-                new_line->type = GEOS_LINESTRING;
+                new_line->type = PalGeometry::Type::LineString;
                 new_line->nbPoints = nbPoints - start + 1;
                 new_line->x = new double[new_line->nbPoints];
                 new_line->y = new double[new_line->nbPoints];
@@ -750,7 +750,7 @@ namespace pal {
 
         PointSet *newShape = new PointSet();
 
-        newShape->type = GEOS_POLYGON;
+        newShape->type = PalGeometry::Type::Polygon;
 
         newShape->nbPoints = nbPtSh;
 
@@ -1474,7 +1474,7 @@ namespace pal {
 #endif
 
     double PointSet::getDist (double px, double py, double *rx, double *ry) {
-        if (nbPoints == 1 || type == GEOS_POINT) {
+        if (nbPoints == 1 || type == PalGeometry::Type::Point) {
             if (rx && ry){
                 *rx = x[0];
                 *ry = y[0];
@@ -1483,7 +1483,7 @@ namespace pal {
         }
 
         int a,b;
-        int nbP = (type == GEOS_POLYGON ? nbPoints : nbPoints -1);
+        int nbP = (type == PalGeometry::Type::Polygon ? nbPoints : nbPoints -1);
 
         double best_dist = DBL_MAX;
         double d;
