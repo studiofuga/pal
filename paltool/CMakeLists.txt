@@ -1,5 +1,4 @@
 add_executable(pal_labeller
-        Geom.cpp Geom.h
         pal.cpp
         )
 

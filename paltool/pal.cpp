@@ -24,8 +24,14 @@
  *
  */
 
+#include "pal/label.h"
+#include "pal/layer.h"
+#include "pal/pal.h"
+#include "pal/GeosWrapGeometry.h"
 
-#include <time.h>
+using namespace pal;
+
+#include <ctime>
 
 #include <cstdlib>
 #include <cfloat>
@@ -37,12 +43,6 @@
 #include <sstream>
 
 #include <exception>
-
-#include <pal/pal.h>
-#include <pal/layer.h>
-#include <pal/label.h>
-
-#include "Geom.h"
 
 #define EXPECTED_VERSION 1
 
@@ -208,7 +208,7 @@ int main (int argc, char **argv) {
 
     pal->setMapUnit(map_unit);
 
-    std::list<Geom*> *the_geoms = new std::list<Geom*>();
+    std::list<GeosWrapGeometry*> *the_geoms = new std::list<GeosWrapGeometry*>();
 
     do {
         char *name = NULL;
@@ -292,7 +292,7 @@ int main (int argc, char **argv) {
                 getLine (is, &line);
 
                 try{
-                    Geom *geom = new Geom (line);
+                    auto geom = new GeosWrapGeometry (line);
 
                     char *gid = new char[int (ceil (log (it))) +2];
                     sprintf (gid, "%d", it);
