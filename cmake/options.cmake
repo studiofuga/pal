@@ -1,1 +1,2 @@
 OPTION(WITHOUT_GEOS "Disable GEOS" OFF)
+OPTION(WITH_BENCHMARKS "Enable benchmark tests" OFF)

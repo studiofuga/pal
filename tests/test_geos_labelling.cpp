@@ -2,7 +2,9 @@
 // Created by happycactus on 30/12/20.
 //
 
+#if defined(HAVE_BENCHMARKS)
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
+#endif
 
 #include <catch2/catch.hpp>
 
@@ -87,19 +89,26 @@ void testSquares (pal::Pal *pal, pal::Layer *, int num)
     pal->removeLayer(layer);
 }
 
+#if defined(HAVE_BENCHMARKS)
+
 TEST_CASE("Geos Labelling", "Geos labelling")
 {
     pal::Pal pal;
     pal.setSearch(pal::CHAIN);
     pal.setMapUnit(pal::METER);
 
-    BENCHMARK("Test 2x2 labelling"){
+    BENCHMARK("Test 2x2 labelling")
+    {
         return testSquares(&pal, nullptr, 2);
     };
-    BENCHMARK("Test 5x5 labelling"){
+    BENCHMARK("Test 5x5 labelling")
+    {
         return testSquares(&pal, nullptr, 5);
     };
-    BENCHMARK("Test 10x10 labelling"){
+    BENCHMARK("Test 10x10 labelling")
+    {
         return testSquares(&pal, nullptr, 10);
     };
 }
+
+#endif

@@ -6,6 +6,10 @@ endif ()
 
 add_executable(unittests ${SOURCES})
 
+if (WITH_BENCHMARKS)
+    target_compile_definitions(unittests -DHAVE_BENCHMARKS)
+endif ()
+
 target_link_libraries(unittests PRIVATE Catch2::Catch2 pal)
 
 include(CTest)
