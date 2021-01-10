@@ -1,5 +1,4 @@
 add_executable(unittests
-        Geom.cpp Geom.h
         pal_tests.cpp
         test_geos_labelling.cpp)
 

@@ -3,30 +3,34 @@
 //
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
+
 #include <catch2/catch.hpp>
 
-#include "Geom.h"
-#include "pal/palgeometry.h"
-#include "pal/pal.h"
+#include "pal/GeosWrapGeometry.h"
 #include "pal/layer.h"
+#include "pal/pal.h"
+#include "pal/palgeometry.h"
 
-#include <sstream>
 #include <iostream>
+#include <sstream>
 
 TEST_CASE("Geos Geometries", "Creation of Features from Geos")
 {
     pal::Pal context;
 
-    SECTION("Point Feature") {
-        Geom g("POINT(10 5)");
+    SECTION("Point Feature")
+    {
+        pal::GeosWrapGeometry g("POINT(10 5)");
         GEOSGeometry *geometry;
         REQUIRE((geometry = g.getGeosGeometry()) != nullptr);
+        g.releaseGeosGeometry();
     }
 
     SECTION("Line Feature") {
-        Geom g("LINESTRING(10 5, 10 -5)");
+        pal::GeosWrapGeometry g("LINESTRING(10 5, 10 -5)");
         GEOSGeometry *geometry;
         REQUIRE((geometry = g.getGeosGeometry()) != nullptr);
+        g.releaseGeosGeometry();
     }
 }
 
@@ -55,7 +59,7 @@ void testSquares (pal::Pal *pal, pal::Layer *, int num)
             wkt << "," << (x*dx) <<" " << (y*dy);
             wkt << "))";
 
-            auto geom = new Geom(wkt.str().c_str());
+            auto geom = new pal::GeosWrapGeometry(wkt.str().c_str());
             layer->registerFeature(id.str().c_str(), geom, lx, ly);
         }
     }
