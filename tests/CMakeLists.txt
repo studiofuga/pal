@@ -1,4 +1,4 @@
-set(SOURCES pal_tests.cpp)
+set(SOURCES pal_tests.cpp test_labelling.cpp)
 
 if (GEOS_FOUND)
     LIST(APPEND SOURCES test_geos_labelling.cpp)

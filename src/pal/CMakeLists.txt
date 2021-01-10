@@ -33,7 +33,7 @@ set(PUB_HEADERS
         ${CMAKE_SOURCE_DIR}/src/includes/pal/palexception.h
         ${CMAKE_SOURCE_DIR}/src/includes/pal/palgeometry.h
         ${CMAKE_SOURCE_DIR}/src/includes/pal/palstat.h
-        )
+        Point.cpp ../includes/pal/Point.h LineString.cpp ../includes/pal/LineString.h Polygon.cpp ../includes/pal/Polygon.h)
 
 if (GEOS_FOUND)
     LIST(APPEND SOURCES GeosWrapGeometry.cpp)
