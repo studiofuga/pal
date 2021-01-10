@@ -156,6 +156,8 @@ GeosWrapGeometry::~GeosWrapGeometry()
     p->simpleGeometries.clear();
 
     GEOSGeom_destroy(p->geosGeom);
+
+    delete p;
 }
 
 GEOSGeometry *GeosWrapGeometry::getGeosGeometry()
