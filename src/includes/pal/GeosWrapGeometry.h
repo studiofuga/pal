@@ -26,6 +26,10 @@
 #ifndef LIBPAL_GEOSWRAPGEOMETRY_H
 #define LIBPAL_GEOSWRAPGEOMETRY_H
 
+#if !defined(HAVE_GEOS)
+#error "GeosWrapGeometry depends on GEOS but the library was not enabled"
+#endif
+
 #include "pal/label.h"
 #include "pal/palgeometry.h"
 

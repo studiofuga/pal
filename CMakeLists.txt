@@ -14,5 +14,6 @@ include(GNUInstallDirs)
 add_subdirectory(src/pal)
 add_subdirectory(tests)
 
-add_subdirectory(paltool)
-
+if (GEOS_FOUND)
+    add_subdirectory(paltool)
+endif ()

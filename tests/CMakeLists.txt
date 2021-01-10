@@ -1,6 +1,10 @@
-add_executable(unittests
-        pal_tests.cpp
-        test_geos_labelling.cpp)
+set(SOURCES pal_tests.cpp)
+
+if (GEOS_FOUND)
+    LIST(APPEND SOURCES test_geos_labelling.cpp)
+endif ()
+
+add_executable(unittests ${SOURCES})
 
 target_link_libraries(unittests PRIVATE Catch2::Catch2 pal)
 
