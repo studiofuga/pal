@@ -72,7 +72,7 @@ public:
      */
     void releaseGeosGeometry();
     Type type() const override;
-    std::vector<PalGeometry *> getSimpleGeometries() const override;
+    std::vector<const PalGeometry *> getSimpleGeometries() const override;
     size_t getNumPoints() const override;
     double getCoordX(size_t n) const override;
     double getCoordY(size_t n) const override;

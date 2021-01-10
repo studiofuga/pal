@@ -36,7 +36,7 @@ struct GeosWrapGeometry::Impl {
     GEOSGeometry *geosGeom = nullptr;
     int nb = 0;
 
-    std::vector<PalGeometry *> simpleGeometries;
+    std::vector<const PalGeometry *> simpleGeometries;
     std::vector<double> x, y;
 
     PalGeometry *externalRing = nullptr;
@@ -177,7 +177,7 @@ PalGeometry::Type GeosWrapGeometry::type() const
     return p->type();
 }
 
-std::vector<PalGeometry *> GeosWrapGeometry::getSimpleGeometries() const
+std::vector<const PalGeometry *> GeosWrapGeometry::getSimpleGeometries() const
 {
     return p->simpleGeometries;
 }

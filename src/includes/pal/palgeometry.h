@@ -63,7 +63,7 @@ public:
      * returns all the Point/LineString/Polygon.
      * @return
      */
-    virtual std::vector<PalGeometry*> getSimpleGeometries() const = 0;
+    virtual std::vector<const PalGeometry *> getSimpleGeometries() const = 0;
 
     /**
      * @brief Returns the number of coordinate pairs of the geometry. It's 1 for Point, 2 for Line and so on
