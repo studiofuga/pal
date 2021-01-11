@@ -29,11 +29,22 @@
 
 #include "palgeometry.h"
 
+#include <tuple>
+#include <type_traits>
+
 namespace pal {
 namespace geometry {
 class LineString : public PalGeometry {
 public:
     LineString();
+
+    template<typename ...ARGS>
+    LineString(ARGS... args) : LineString()
+    {
+        addPoints<0>(std::make_tuple(args...));
+    }
+
+    void addPoint(double x, double y);
 
     PalGeometry *getInternalRing(size_t n) const override;
     ~LineString() override;
@@ -48,6 +59,18 @@ public:
     size_t numInternalRings() const override;
 
 private:
+    template<int N, typename ...ARGS, std::enable_if_t<N < sizeof...(ARGS), int> = 0>
+    void addPoints(std::tuple<ARGS...> args)
+    {
+        addPoint(std::get<N>(args), std::get<N + 1>(args));
+        addPoints<N + 2>(args);
+    }
+
+    template<int N, typename ...ARGS, std::enable_if_t<N >= sizeof...(ARGS), int> = 0>
+    void addPoints(std::tuple<ARGS...> args)
+    {
+    }
+
     struct Impl;
     Impl *p;
 

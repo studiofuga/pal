@@ -38,21 +38,6 @@
 #include <iostream>
 #include <sstream>
 
-TEST_CASE("Pal Geometries", "Creation of Features from Geos")
+TEST_CASE("Labelling")
 {
-    pal::Pal context;
-
-    SECTION("Point Feature")
-    {
-        pal::geometry::Point p(10, 5);
-        REQUIRE(p.type() == pal::PalGeometry::Type::Point);
-        REQUIRE(p.getNumPoints() == 1);
-        REQUIRE(p.getCoordX(0) == 10);
-        REQUIRE(p.getCoordY(0) == 5);
-        REQUIRE_THROWS_AS(p.getCoordX(1), std::out_of_range);
-        REQUIRE_THROWS_AS(p.getCoordY(1), std::out_of_range);
-        REQUIRE(p.getExteriorRing() == nullptr);
-        REQUIRE(p.numInternalRings() == 0);
-        REQUIRE_THROWS_AS(p.getInternalRing(0), std::out_of_range);
-    }
 }

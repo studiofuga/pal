@@ -48,7 +48,7 @@ PalGeometry::Type geometry::Polygon::type() const
 
 std::vector<const PalGeometry *> geometry::Polygon::getSimpleGeometries() const
 {
-    return std::vector<const PalGeometry *>();
+    return std::vector<const PalGeometry *>{this};
 }
 
 size_t geometry::Polygon::getNumPoints() const

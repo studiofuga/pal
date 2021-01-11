@@ -26,10 +26,12 @@
 
 #include "pal/LineString.h"
 
+#include <stdexcept>
 
 namespace pal {
 
 struct geometry::LineString::Impl {
+    std::vector<double> x, y;
 };
 
 geometry::LineString::LineString()
@@ -42,6 +44,12 @@ geometry::LineString::~LineString()
     delete p;
 }
 
+void geometry::LineString::addPoint(double x, double y)
+{
+    p->x.push_back(x);
+    p->y.push_back(y);
+}
+
 PalGeometry::Type geometry::LineString::type() const
 {
     return Type::LineString;
@@ -49,30 +57,35 @@ PalGeometry::Type geometry::LineString::type() const
 
 std::vector<const PalGeometry *> geometry::LineString::getSimpleGeometries() const
 {
-    return std::vector<const PalGeometry *>();
+    return std::vector<const PalGeometry *>{this};
 }
 
 size_t geometry::LineString::getNumPoints() const
 {
-    return 0;
+    if (p->x.size() != p->y.size()) {
+        throw std::logic_error("x and y coordinates array must have the same size.");
+    }
+    return p->x.size();
 }
 
 double geometry::LineString::getCoordX(size_t n) const
 {
-    return 0;
+    return p->x.at(n);
 }
 
 double geometry::LineString::getCoordY(size_t n) const
 {
-    return 0;
+    return p->y.at(n);
 }
 
 void geometry::LineString::getCoordsX(double *xarray) const
 {
+    std::copy(p->x.begin(), p->x.end(), xarray);
 }
 
 void geometry::LineString::getCoordsY(double *yarray) const
 {
+    std::copy(p->y.begin(), p->y.end(), yarray);
 }
 
 PalGeometry *geometry::LineString::getExteriorRing() const
@@ -87,7 +100,7 @@ size_t geometry::LineString::numInternalRings() const
 
 PalGeometry *geometry::LineString::getInternalRing(size_t n) const
 {
-    return nullptr;
+    throw std::out_of_range("LineString geometry has no internal rings");
 }
 
 }// namespace pal
