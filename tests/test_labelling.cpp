@@ -34,10 +34,70 @@
 #include "pal/pal.h"
 #include "pal/palgeometry.h"
 #include "pal/Point.h"
+#include "pal/LineString.h"
 
 #include <iostream>
 #include <sstream>
 
-TEST_CASE("Labelling")
+static const double lx = 2.5;
+static const double ly = 1.0;
+
+TEST_CASE("Labelling Points")
 {
+    pal::Pal context;
+    context.setSearch(pal::CHAIN);
+    context.setMapUnit(pal::METER);
+
+    auto p1 = new pal::geometry::Point(0, 5);
+    auto p2 = new pal::geometry::Point(10, 5);
+    auto p3 = new pal::geometry::Point(20, 5);
+
+    auto layer = context.addLayer("points", -1, -1, pal::P_FREE,
+                                  pal::METER, 0.5, false, true, true);
+
+    layer->registerFeature("p1", p1, lx, ly);
+    layer->registerFeature("p2", p2, lx, ly);
+    layer->registerFeature("p3", p3, lx, ly);
+
+    double bbox[4] = {-10, -10, 30, 10};
+
+    pal::PalStat *stats;
+    std::list<pal::Label *> *labels = context.labeller(1, bbox, &stats, false);
+
+    REQUIRE(labels->size() == 3);
+    for (auto label : *labels) {
+        std::cout << "Label: " << label->getFeatureId() << " Position " << label->getOrigX() << ","
+                  << label->getOrigY() << " deg " << label->getRotation() << "\n";
+    }
+
+}
+
+TEST_CASE("Labelling LineStrings")
+{
+    pal::Pal context;
+    context.setSearch(pal::CHAIN);
+    context.setMapUnit(pal::METER);
+
+    auto l1 = new pal::geometry::LineString(0, 5, 0, 10);
+    auto l2 = new pal::geometry::LineString(10, 5, 10, 10);
+    auto l3 = new pal::geometry::LineString(20, 5, 20, 10);
+
+    auto layer = context.addLayer("linestrings", -1, -1, pal::P_FREE,
+                                  pal::METER, 0.5, false, true, true);
+
+    layer->registerFeature("l1", l1, lx, ly);
+    layer->registerFeature("l2", l2, lx, ly);
+    layer->registerFeature("l3", l3, lx, ly);
+
+    double bbox[4] = {-10, -10, 30, 20};
+
+    pal::PalStat *stats;
+    std::list<pal::Label *> *labels = context.labeller(1, bbox, &stats, false);
+
+    REQUIRE(labels->size() == 3);
+    for (auto label : *labels) {
+        std::cout << "Label: " << label->getFeatureId() << " Position " << label->getOrigX() << ","
+                  << label->getOrigY() << " deg " << label->getRotation() << "\n";
+    }
+
 }
