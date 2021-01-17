@@ -28,6 +28,7 @@
 #define _PAL_GEOMETRY_H
 
 #include <vector>
+#include <string>
 
 namespace pal {
 
@@ -35,6 +36,7 @@ namespace pal {
  * \brief Interface that allow Pal to acces user's geometries
  */
 class PalGeometry {
+    std::string mUserText;
 public:
     enum class Type {
         None = 0,
@@ -123,6 +125,15 @@ public:
      */
     virtual PalGeometry *getInternalRing(size_t n) const = 0;
 
+    const std::string &userText() const
+    {
+        return mUserText;
+    }
+
+    void setUserText(std::string s)
+    {
+        mUserText = std::move(s);
+    }
 };
 
 } // end namespace pal
