@@ -73,9 +73,11 @@ namespace pal {
     }
 
     Pal::Pal() {
+#if defined (HAVE_GEOS)
         initGEOS (geosNotice, geosError);
+#endif
 
-        layers = new std::list<Layer*>();
+        layers = new std::list<Layer *>();
 
         lyrsMutex = new SimpleMutex();
 
@@ -147,7 +149,9 @@ namespace pal {
         delete layers;
         delete lyrsMutex;
 
+#if defined(HAVE_GEOS)
         finishGEOS();
+#endif
     }
 
 
