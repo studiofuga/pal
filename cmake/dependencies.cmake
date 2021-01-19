@@ -14,4 +14,6 @@ if (GEOS_FOUND)
     add_definitions(-DHAVE_GEOS)
 endif()
 
-find_package(Catch2 REQUIRED)
+if (NOT WITHOUT_TEST)
+    find_package(Catch2 REQUIRED)
+endif ()
