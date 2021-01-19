@@ -45,10 +45,18 @@ add_library(pal SHARED ${SOURCES} ${HEADERS} ${PUB_HEADERS})
 
 set_target_properties(pal PROPERTIES PUBLIC_HEADERS "${PUB_HEADERS}")
 
+SET(EXTRA_INCLUDES "")
+SET(EXTRA_LIBRARIES "")
+
+if (GEOS_FOUND)
+    LIST(APPEND EXTRA_INCLUDES ${GEOS_INCLUDE_DIR})
+    LIST(APPEND EXTRA_LIBRARIES ${GEOS_LIBRARY})
+endif (GEOS_FOUND)
+
 target_include_directories(pal
         PUBLIC
         ${CMAKE_SOURCE_DIR}/src/includes
-        ${GEOS_INCLUDE_DIR}
+        ${EXTRA_INCLUDES}
         PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         )
@@ -57,7 +65,7 @@ target_link_libraries(pal
         PRIVATE
         Threads::Threads
         PUBLIC
-        ${GEOS_LIBRARY}
+        ${EXTRA_LIBRARIES}
         )
 
 install(TARGETS pal

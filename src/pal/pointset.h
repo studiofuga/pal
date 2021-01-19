@@ -31,8 +31,6 @@
 #include "rtree.hpp"
 #include "linkedlist.hpp"
 
-#include <geos_c.h>
-
 #include <cfloat>
 #include <cmath>
 #include <cstddef>

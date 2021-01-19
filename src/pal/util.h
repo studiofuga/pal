@@ -27,19 +27,18 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#include "pal/pal.h"
+
 #include <cmath>
 #include <cstring>
-#include <stddef.h>
-#include <geos_c.h>
-
-#include <pal/pal.h>
+#include <cstddef>
 
 #include "rtree.hpp"
 #include "pointset.h"
 
 namespace pal {
 
-    class LabelPosition;
+class LabelPosition;
     class Layer;
     class Feature;
 

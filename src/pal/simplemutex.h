@@ -28,10 +28,11 @@
 #define _SIMPLE_MUTEX_H_
 
 // Platform dependant mutex
+#ifndef _HAVE_WINDOWS_H_
 #ifdef _HAVE_PTHREAD_
 #include <pthread.h>
 #define THREAD_TYPE pthread_mutex_t
-
+#endif
 
 #define CREATE_MUTEX(mutex) (pthread_mutex_init(&mutex, NULL))
 #define LOCK(mutex)  (pthread_mutex_lock(&mutex))

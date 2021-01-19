@@ -26,19 +26,9 @@
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include <cstdarg>
-#include <iostream>
-#include <fstream>
-#include <cstring>
-#include <cfloat>
-#include <ctime>
-#include <list>
-//#include <geos/geom/Geometry.h>
-#include <geos_c.h>
-
-#include <pal/pal.h>
-#include <pal/layer.h>
-#include <pal/palexception.h>
+#include "pal/pal.h"
+#include "pal/layer.h"
+#include "pal/palexception.h"
 
 #include "linkedlist.hpp"
 #include "rtree.hpp"
@@ -51,14 +41,23 @@
 #include "simplemutex.h"
 #include "util.h"
 
+#include <cstdarg>
+#include <iostream>
+#include <fstream>
+#include <cstring>
+#include <cfloat>
+#include <ctime>
+#include <list>
+
+
 namespace pal {
 
-    typedef struct {
-        //LabelPosition *lp;
-        double scale;
-        Pal* pal;
-        PointSet *obstacle;
-    } PruneCtx;
+typedef struct {
+    //LabelPosition *lp;
+    double scale;
+    Pal *pal;
+    PointSet *obstacle;
+} PruneCtx;
 
     void geosError (const char *fmt, ...) {
         va_list list;

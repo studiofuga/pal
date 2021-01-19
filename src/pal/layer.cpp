@@ -26,17 +26,9 @@
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include <stddef.h>
-#include <geos_c.h>
-
-#include <iostream>
-#include <cstring>
-#include <cmath>
-
-
-#include <pal/pal.h>
-#include <pal/layer.h>
-#include <pal/palexception.h>
+#include "pal/pal.h"
+#include "pal/layer.h"
+#include "pal/palexception.h"
 
 #include "linkedlist.hpp"
 #include "hashtable.hpp"
@@ -47,11 +39,24 @@
 
 #include "simplemutex.h"
 
+#include <iostream>
+#include <cstring>
+#include <cmath>
+#include <cstddef>
+
 namespace pal {
 
-    Layer::Layer (const char *lyrName, double min_scale, double max_scale, Arrangement arrangement, Units label_unit, double defaultPriority, bool obstacle, bool active, bool toLabel, Pal *pal) :  pal (pal), obstacle (obstacle), active (active), toLabel (toLabel), label_unit (label_unit), min_scale (min_scale), max_scale (max_scale), arrangement (arrangement) {
+Layer::Layer(const char *lyrName, double min_scale, double max_scale, Arrangement arrangement, Units label_unit,
+             double defaultPriority, bool obstacle, bool active, bool toLabel, Pal *pal) : pal(pal), obstacle(obstacle),
+                                                                                           active(active),
+                                                                                           toLabel(toLabel),
+                                                                                           label_unit(label_unit),
+                                                                                           min_scale(min_scale),
+                                                                                           max_scale(max_scale),
+                                                                                           arrangement(arrangement)
+{
 
-        this->name = new char[strlen (lyrName) +1];
+    this->name = new char[strlen (lyrName) +1];
         strcpy (this->name, lyrName);
 
         modMutex = new SimpleMutex();

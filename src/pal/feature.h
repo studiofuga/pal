@@ -31,8 +31,6 @@
 #include <fstream>
 #include <cmath>
 
-#include <geos_c.h>
-
 #include <pal/palgeometry.h>
 
 #include "pointset.h"
@@ -77,7 +75,6 @@ namespace pal {
 
         int distlabel;
 
-        GEOSGeometry *the_geom;
         int currentAccess;
 
         int nPart;
